@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="et">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pokkeri turniiri tabloo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;600;700;800&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07090d; --panel:#10151d; --panel2:#161d27; --line:#232c39;
+  --txt:#eef2f7; --mut:#8c98a8; --acc:#2fd27a; --warn:#ffb020; --bad:#ff5468; --brk:#4aa8ff;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  --sans:"Barlow Semi Condensed",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--txt);font-family:var(--sans);-webkit-tap-highlight-color:transparent}
+body{min-height:100vh;display:flex;flex-direction:column}
+button{font-family:inherit;cursor:pointer;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:12px;font-size:1.05rem;font-weight:700;padding:.65em 1em;touch-action:manipulation}
+button:active{transform:scale(.97)}
+button.pri{background:var(--acc);color:#04160b;border-color:var(--acc)}
+button.danger{background:#3a1219;border-color:#6b1f2c;color:#ffb3bd}
+button.ghost{background:transparent}
+input,select,textarea{font-family:inherit;font-size:1.05rem;background:#0b1017;color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:.55em .7em;width:100%}
+input:focus,textarea:focus{outline:2px solid var(--acc);outline-offset:-1px}
+.mut{color:var(--mut)}
+
+/* ---------- header ---------- */
+header{display:flex;align-items:center;gap:.8rem;padding:.7rem 1rem;border-bottom:1px solid var(--line)}
+header h1{margin:0;font-size:clamp(1.3rem,3.2vmin,2.4rem);font-weight:800;letter-spacing:.02em;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header .hbtn{padding:.5em .75em;font-size:1rem}
+
+/* ---------- main layout ---------- */
+main{flex:1;display:grid;gap:1rem;padding:1rem;grid-template-columns:1fr;grid-template-areas:"clock" "stats" "pay" "out"}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:1rem 1.1rem;min-height:0}
+.card h2{margin:0 0 .6rem;font-size:clamp(.9rem,1.9vmin,1.3rem);text-transform:uppercase;letter-spacing:.12em;color:var(--mut);font-weight:700}
+
+/* ---------- clock ---------- */
+#clock{grid-area:clock;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:.4rem;padding:1.2rem}
+#lvl{font-size:clamp(1.6rem,5vmin,4.2rem);font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+#lvl.brk{color:var(--brk)}
+#timer{font-family:var(--mono);font-weight:800;font-variant-numeric:tabular-nums;line-height:.95;
+       font-size:clamp(5rem,24vw,11rem);letter-spacing:-.02em;transition:color .3s}
+
+#timer.paused{color:var(--mut)}
+#timer.last{color:var(--bad)}
+#bar{width:100%;max-width:900px;height:10px;background:var(--panel2);border-radius:99px;overflow:hidden}
+#bar i{display:block;height:100%;background:var(--acc);width:0;transition:width .25s linear}
+#bar.brk i{background:var(--brk)} #bar.last i{background:var(--bad)}
+#blinds{font-family:var(--mono);font-weight:800;font-size:clamp(2.6rem,11vw,6rem);line-height:1;margin-top:.4rem}
+
+#ante{font-size:clamp(1.3rem,4.5vmin,3rem);font-weight:700;color:var(--warn)}
+#next{font-size:clamp(1.1rem,3.4vmin,2.3rem);color:var(--mut);font-weight:600}
+#next b{color:var(--txt);font-family:var(--mono)}
+#tobreak{font-size:clamp(1rem,3vmin,2rem);color:var(--brk);font-weight:700}
+#status{font-size:clamp(.9rem,2.2vmin,1.4rem);color:var(--warn);font-weight:700;letter-spacing:.2em;min-height:1.2em}
+
+/* ---------- stats ---------- */
+#stats{grid-area:stats;display:flex;flex-direction:column;gap:.9rem}
+.stat{display:flex;justify-content:space-between;align-items:baseline;gap:.5rem;border-bottom:1px solid var(--line);padding-bottom:.5rem}
+.stat:last-child{border:0}
+.stat .k{color:var(--mut);font-size:clamp(1rem,2.3vmin,1.5rem);font-weight:600}
+.stat .v{white-space:nowrap;font-family:var(--mono);font-size:clamp(1.4rem,3.6vmin,2.6rem);font-weight:800;text-align:right}
+.stat .v small{font-size:.55em;color:var(--mut);display:block;font-weight:700}
+.counter{display:flex;align-items:center;gap:.4rem}
+.counter button{padding:.35em .7em;font-size:1.2rem;min-width:2.6em}
+.bigbtn{width:100%;font-size:clamp(1.1rem,2.6vmin,1.6rem);padding:.8em}
+
+/* ---------- payouts / out ---------- */
+#pay{grid-area:pay} #out{grid-area:out;display:flex;flex-direction:column}
+.row{display:flex;justify-content:space-between;gap:.6rem;padding:.38rem 0;border-bottom:1px solid var(--line);font-size:clamp(1.05rem,2.6vmin,1.75rem)}
+.row:last-child{border:0}
+.row .p{font-family:var(--mono);font-weight:800;color:var(--mut);min-width:2.6em}
+.row .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .a{font-family:var(--mono);font-weight:800}
+.row .in{font-family:var(--mono);font-weight:700;color:var(--mut);font-size:.8em;white-space:nowrap;align-self:center}
+.row.itm .a{color:var(--acc)}
+.row.outp .n,.row.outp .p,.row.outp .in{color:#5f6976}
+.row.outp.itm .n,.row.outp.itm .p{color:#98a2ae}
+.row.outp .badge{opacity:.5}
+.row.win{color:var(--warn)} .row.win .a{color:var(--warn)}
+.chips{display:flex;flex-wrap:wrap;gap:.7rem;justify-content:flex-start}
+.chip{display:flex;flex-direction:column;align-items:center;gap:.25rem;font-family:var(--mono);font-weight:800;font-size:clamp(.95rem,2.2vmin,1.5rem)}
+.chip i{width:clamp(2.6rem,6vmin,4.6rem);height:clamp(2.6rem,6vmin,4.6rem);border-radius:50%;background:var(--c);display:block;
+  border:clamp(4px,.8vmin,7px) dashed rgba(255,255,255,.85);box-shadow:0 0 0 2px var(--c),inset 0 0 0 clamp(5px,1vmin,9px) var(--c),inset 0 0 0 calc(clamp(5px,1vmin,9px) + 2px) rgba(255,255,255,.5)}
+.chip.light i{border-color:rgba(0,0,0,.45)}
+.chip.rm{opacity:.38} .chip.rm span::after{content:' ✕';color:var(--bad)}
+.pool{font-family:var(--mono);font-size:clamp(1.8rem,4.6vmin,3.4rem);font-weight:800;color:var(--acc);margin-bottom:.4rem}
+
+/* ---------- controls ---------- */
+#ctrl{position:sticky;bottom:0;display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap;padding:.8rem 1rem calc(.8rem + env(safe-area-inset-bottom));
+      background:linear-gradient(transparent,var(--bg) 25%);}
+#ctrl button{font-size:clamp(1.05rem,2.4vmin,1.5rem);padding:.7em 1.1em;min-width:4em}
+#ctrl #go{min-width:8em}
+@media (max-width:640px){
+  #ctrl{flex-wrap:nowrap;gap:.4rem;padding-left:.6rem;padding-right:.6rem}
+  #ctrl button{flex:1;min-width:0;padding:.85em .2em;font-size:1rem}
+  #ctrl #go{flex:1.7;min-width:0}
+  .grid{grid-template-columns:1fr 1fr}
+}
+
+/* ---------- overlays ---------- */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;z-index:50;overflow:auto}
+.ov.on{display:block}
+.sheet{max-width:860px;margin:0 auto;background:var(--panel);min-height:100%;padding:1rem 1.1rem 4rem}
+.sheet .top{display:flex;align-items:center;gap:.6rem;position:sticky;top:0;background:var(--panel);padding:.4rem 0 .8rem;z-index:2;border-bottom:1px solid var(--line)}
+.sheet .top h2{flex:1;margin:0;font-size:1.6rem}
+.sec{margin-top:1.4rem}
+.sec h3{margin:0 0 .7rem;font-size:1.05rem;text-transform:uppercase;letter-spacing:.12em;color:var(--acc)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.8rem}
+label.f{display:flex;flex-direction:column;gap:.3rem;font-size:.95rem;color:var(--mut);font-weight:600}
+.chk{display:flex;align-items:center;gap:.5rem;font-weight:600}
+.chk input{width:auto;transform:scale(1.4)}
+.seg{display:flex;gap:.5rem;flex-wrap:wrap}
+.seg button.on{background:var(--acc);color:#04160b;border-color:var(--acc)}
+table{width:100%;border-collapse:collapse;font-size:1rem}
+th{text-align:left;color:var(--mut);font-weight:600;padding:.3rem;font-size:.85rem;text-transform:uppercase;letter-spacing:.08em}
+td{padding:.22rem .25rem}
+td input{padding:.4em .5em;font-family:var(--mono);font-size:.95rem;min-width:4.6em}
+td:first-child{white-space:nowrap}
+table{min-width:480px}
+tr.cur td{background:#13301f}
+tr.brk td{color:var(--brk)}
+td .x{padding:.35em .6em;font-size:.95rem}
+.note{font-size:.9rem;color:var(--mut);margin:.4rem 0 0}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:80;padding:1rem}
+.modal.on{display:flex}
+.modal .box{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:1.3rem;width:100%;max-width:460px}
+.modal h3{margin:0 0 .8rem;font-size:1.5rem}
+.modal .btns{display:flex;gap:.6rem;justify-content:flex-end;margin-top:1rem}
+.toast{position:fixed;left:50%;top:1rem;transform:translateX(-50%);background:var(--warn);color:#1b1200;font-weight:800;padding:.6rem 1.1rem;border-radius:12px;z-index:90;display:none;font-size:1.1rem}
+
+.pbtns{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.5rem}
+.pbtns button{font-size:1.15rem;padding:.8em .5em}
+.badge{display:inline-block;font-family:var(--mono);font-size:.68em;font-weight:800;padding:.1em .45em;border-radius:6px;margin-left:.35em;vertical-align:.12em}
+.badge.r{background:#123a5c;color:#9fd0ff} .badge.a{background:#3d3311;color:#ffd979}
+.row.pl{cursor:pointer}
+.rbst{font-size:clamp(.95rem,2.1vmin,1.35rem);font-weight:700;padding:.45rem .7rem;border-radius:10px;background:#0f2a1a;color:var(--acc)}
+.rbst.off{background:var(--panel2);color:var(--mut)}
+.btn3{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.readout{background:#0b1017;border:1px solid var(--line);border-radius:12px;padding:.8rem 1rem;margin-top:.8rem;line-height:1.55}
+.readout b{font-family:var(--mono)}
+.tag{display:inline-block;padding:.15em .6em;border-radius:8px;font-size:.85rem;font-weight:700}
+.tag.auto{background:#0f2a1a;color:var(--acc)} .tag.man{background:#3d3311;color:var(--warn)}
+#endest{font-size:clamp(.9rem,2.4vmin,1.6rem);color:var(--mut);font-weight:600}
+.chip small{font-size:.7em;color:var(--mut);font-weight:700}
+
+.tvonly{display:none}
+.htable td,.htable th{padding:.45rem .4rem;border-bottom:1px solid var(--line);font-size:1.05rem}
+.htable td.num{font-family:var(--mono);text-align:right}
+.htable tr:first-child td{color:var(--warn)}
+select{font-family:inherit;font-size:1.05rem;background:#0b1017;color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:.55em .7em;width:100%}
+
+/* ===== LANDSCAPE / TV ===== */
+@media (orientation:landscape) and (min-width:640px){
+  body{height:100vh;overflow:hidden}
+  header{padding:.8vh 1.4vw;gap:1vw}
+  header h1{font-size:4.6vh}
+  header .hbtn{font-size:2.3vh;padding:.45em .75em}
+  main{flex:1;min-height:0;overflow:hidden;grid-template-columns:minmax(0,24fr) minmax(0,46fr) minmax(0,30fr);grid-template-rows:auto minmax(0,1fr);
+       grid-template-areas:"stats clock pay" "stats clock out";gap:1.4vh 1.2vw;padding:1.4vh 1.4vw}
+  .card{padding:1.8vh 1.3vw;border-radius:2.2vh}
+  .card h2{font-size:2.1vh;margin-bottom:1.1vh}
+  #stats{gap:1.1vh;overflow:hidden}
+  .stat{padding-bottom:.9vh}
+  .stat .k{font-size:2.5vh} .stat .v{font-size:4.2vh}
+  .counter button,.bigbtn,.btn3 button{font-size:2.5vh;padding:.55em}
+  .rbst{font-size:2.2vh;padding:.8vh 1vw}
+  #clock{gap:.5vh;padding:2vh 1vw}
+  #status{font-size:2.4vh} #lvl{font-size:6.2vh}
+  #timer{font-size:min(26vh,12.6vw)}
+  #bar{height:1.3vh;max-width:none}
+  #blinds{font-size:min(12.5vh,7.6vw);margin-top:1vh}
+  #ante{font-size:4.4vh} #next{font-size:3.6vh} #tobreak{font-size:3.2vh} #endest{font-size:2.5vh}
+  .pool{font-size:6vh;margin-bottom:.6vh}
+  .row{font-size:2.9vh;padding:.55vh 0}
+  #out{display:flex;flex-direction:column;min-height:0}
+  #out .list{overflow:auto;flex:1;min-height:0}
+  #out .list.two{column-count:2;column-gap:1.4vw} #out .list.two .row{break-inside:avoid;font-size:2.5vh}
+  .chips{gap:.5vw;flex-wrap:nowrap} .chip{font-size:2vh} .chip i{width:min(5.4vh,3.2vw);height:min(5.4vh,3.2vw);border-width:.6vh}
+  .row .p{min-width:1.9em}
+  #out .list.many .row{font-size:2.5vh;padding:.35vh 0}
+  #ctrl{padding:1.2vh 1.4vw;gap:1vw;background:var(--bg)}
+  #ctrl button{font-size:2.8vh;padding:.6em 1.1em}
+  /* TV mode: controls float over the board and hide when idle */
+  body.tv #ctrl{position:fixed;left:0;right:0;bottom:0;background:rgba(7,9,13,.92);border-top:1px solid var(--line);transition:opacity .4s}
+  body.tv .tvonly{display:inline-block}
+  body.tv .act{display:none!important}
+  body.tv.idle #ctrl,body.tv.idle header .hbtn{opacity:0;pointer-events:none}
+  body.tv header .hbtn{transition:opacity .4s}
+  body.tv.idle{cursor:none}
+}
+@media (orientation:landscape) and (min-width:640px) and (max-height:520px){
+  .stat .k{font-size:2.9vh} #sChipsRow{display:none}
+}
+
+#timeOv{position:fixed;inset:0;z-index:95;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(5,7,10,.93);cursor:pointer;text-align:center}
+#timeOv.on{display:flex}
+#timeOv .tl{font-size:min(9vh,10vw);font-weight:800;letter-spacing:.2em;color:var(--warn)}
+#timeName{font-size:min(6vh,7vw);font-weight:700;min-height:1.2em}
+#timeNum{font-family:var(--mono);font-weight:800;font-size:min(55vh,60vw);line-height:1;color:var(--txt)}
+#timeOv.hot #timeNum{color:var(--bad)}
+#timeOv.done{background:rgba(120,10,25,.94)} #timeOv.done #timeNum{color:#fff;font-size:min(22vh,16vw)}
+#timeOv .tl2{font-size:min(2.6vh,3.5vw);color:var(--mut);margin-top:2vh}
+
+.bl{display:grid;grid-template-columns:1fr auto 1fr;column-gap:.25em;align-items:baseline;width:100%}
+.bl .lab{font-family:var(--sans);font-size:.3em;font-weight:800;letter-spacing:.2em;color:var(--mut);text-transform:uppercase;line-height:1.4}
+.bl .l{text-align:right} .bl .rr{text-align:left}
+.bl .sl{color:var(--mut)}
+.bl .nx{font-size:.34em;color:var(--mut);line-height:1.3;margin-top:.15em}
+.bl .nxl{font-family:var(--sans);font-size:.2em;font-weight:700;letter-spacing:.14em;color:var(--mut);text-transform:uppercase;align-self:center;text-align:center}
+#alarm{position:fixed;left:max(14px,1.4vw);bottom:calc(env(safe-area-inset-bottom) + 96px);z-index:60;width:68px;height:68px;border-radius:50%;padding:0;
+  background:radial-gradient(circle at 35% 30%,#ff6b7c,#d81f36 60%,#9e0f22);border:3px solid rgba(255,255,255,.85);box-shadow:0 6px 22px rgba(216,31,54,.55),0 0 0 6px rgba(216,31,54,.18);
+  display:flex;align-items:center;justify-content:center;transition:transform .15s}
+#alarm svg{width:58%;height:58%}
+body:has(.ov.on) #alarm,body:has(.modal.on) #alarm{display:none}
+#alarm:active{transform:scale(.92)}
+@media (orientation:landscape) and (min-width:640px){ #alarm{bottom:1.2vh;width:min(8.6vh,80px);height:min(8.6vh,80px);border-width:2px} body.tv #alarm{opacity:.9} }
+@media (max-width:640px) and (orientation:portrait){ header{flex-wrap:wrap;row-gap:.4rem;gap:.35rem} header h1{flex-basis:100%} header .hbtn{padding:.45em .55em;font-size:.95rem} #alarm{width:58px;height:58px;bottom:calc(env(safe-area-inset-bottom) + 86px)} }
+</style>
+
+<body>
+<header>
+  <h1 id="tname">Kodune turniir</h1>
+  <button class="hbtn ghost" id="tvBtn" title="Telerivaade (peidab nupud)">📺</button>
+  <button class="hbtn ghost" id="histBtn" title="Ajalugu ja hooaeg">📊</button>
+  <button class="hbtn ghost" id="wakeBtn" title="Ekraan ärkvel">💡</button>
+  <button class="hbtn ghost" id="snd" title="Heli">🔔</button>
+  <button class="hbtn ghost" id="fs" title="Täisekraan">⛶</button>
+  <button class="hbtn" id="openSet">⚙ Seaded</button>
+</header>
+
+<main>
+  <section class="card" id="clock">
+    <div id="status"></div>
+    <div id="lvl">Tase 1</div>
+    <div id="timer" class="paused">15:00</div>
+    <div id="bar"><i></i></div>
+    <div id="blinds">25 / 50</div>
+    <div id="ante"></div>
+    <div id="next"></div>
+    <div id="tobreak"></div>
+    <div id="endest"></div>
+  </section>
+
+  <section class="card" id="stats">
+    <h2>Jooksev seis</h2>
+    <div class="stat"><span class="k">Mängijaid järel</span><span class="v" id="sAlive">8 / 8</span></div>
+    <button class="danger bigbtn act" id="bust">✖ Väljalangemine</button>
+    <div class="rbst" id="rbst"></div>
+    <div class="btn3 act"><button id="rbBtn">🔁 Rebuy</button><button id="aoBtn">➕ Add-on</button></div><span id="timeKeyLbl" hidden></span>
+    <div class="stat"><span class="k">Rebuy / add-on</span><span class="v" id="sRA">0 / 0</span></div>
+    <div class="stat" id="sChipsRow"><span class="k">Žetoone kokku</span><span class="v" id="sChips">0</span></div>
+    <div class="stat"><span class="k">Keskmine stack</span><span class="v" id="sAvg">0</span></div>
+    <div><h2 style="margin-top:.3rem">Žetoonid <span class="mut" style="text-transform:none;letter-spacing:0">(tk stackis)</span></h2><div class="chips" id="chipRow"></div><p class="note" id="chipNote" style="margin:.4rem 0 0"></p></div>
+  </section>
+
+  <section class="card" id="pay">
+    <h2>Auhinnafond</h2>
+    <div class="pool" id="pool">0 €</div>
+    <div id="payList"></div>
+  </section>
+
+  <section class="card" id="out">
+    <h2>Mängijad</h2>
+    <div class="list" id="outList"></div>
+  </section>
+</main>
+
+<nav id="ctrl">
+  <button class="tvonly danger" id="bust2">✖ Välja</button>
+  <button class="tvonly" id="rb2">🔁</button>
+  <button class="tvonly" id="ao2">➕</button>
+  <button class="tvonly" id="time2" style="color:#ffd979">⏱</button>
+  <button id="prev" title="Eelmine tase (←)">⏮</button>
+  <button id="minus" title="−1 min (−)">−1 min</button>
+  <button id="go" class="pri" title="Start / paus (tühik)">▶ Start</button>
+  <button id="plus" title="+1 min (+)">+1 min</button>
+  <button id="nextB" title="Järgmine tase (→)">⏭</button>
+</nav>
+
+<div class="ov" id="set">
+  <div class="sheet">
+    <div class="top"><h2>Seaded</h2><button class="pri" id="closeSet">Valmis</button></div>
+
+    <div class="sec"><h3>Turniir</h3>
+      <div class="grid">
+        <label class="f" style="grid-column:1/-1">Turniiri nimi<input data-s="name" type="text"></label>
+        <label class="f">Buy-in (€)<input data-s="buyin" data-p="1" type="number" min="0" step="any" inputmode="decimal"></label>
+      </div>
+    </div>
+
+    <div class="sec"><h3>Planeerija</h3>
+      <div class="seg" style="margin:.2rem 0 .6rem"><button id="stdBtn">⭐ Standardseadistus</button><span class="note" style="align-self:center;margin:0">buy-in 5 € · stack 500 · blindid 1/2 · žetoonid 1, 2, 5, 25, 100 · rebuy 2 h või pooled mängijad</span></div>
+      <p class="note" style="margin-top:.2rem">Muuda ükskõik millist välja – ülejäänud arvutatakse ümber. Taseme pikkuse muutmisel arvutatakse uus kestus, kestuse muutmisel uus taseme pikkus.</p>
+      <div class="grid">
+        <label class="f">Mängijate arv<input id="nPlayers" type="number" min="2" max="60" inputmode="numeric"></label>
+        <label class="f">Soovitud kestus<select data-s="durH" data-p="durH"><option value="1.5">1,5 h</option><option value="2">2 h</option><option value="2.5">2,5 h</option><option value="3">3 h</option><option value="3.5">3,5 h</option><option value="4">4 h</option></select></label>
+        <label class="f">Stardistack<input data-s="stack" data-p="stack" type="number" min="100" step="100" inputmode="numeric"></label>
+        <label class="f">Taseme pikkus (min)<input data-s="levelMin" data-p="levelMin" type="number" min="3" inputmode="numeric"></label>
+        <label class="f">Algne small blind (0 = automaatne)<input data-s="startSB" data-p="startSB" type="number" min="0" inputmode="numeric"></label>
+      </div>
+      <div class="readout" id="readout"></div>
+      <div class="seg" style="margin-top:.6rem"><button id="regen">↻ Arvuta struktuur uuesti</button></div>
+    </div>
+
+    <div class="sec"><h3>Mängijad</h3>
+      <div id="plNames" class="grid"></div>
+      <div class="seg" style="margin-top:.6rem"><button id="addPl">+ Lisa mängija</button></div>
+      <p class="note">Hiljem lisatud mängija (late reg) suurendab auhinnafondi ja žetoonide arvu.</p>
+    </div>
+
+    <div class="sec"><h3>Rebuy ja add-on</h3>
+      <div class="seg" id="rbMode"><button data-m="combo">Aeg või pooled mängijad</button><button data-m="none">Rebuy'd pole</button><button data-m="levels">Tasemete arvu järgi</button><button data-m="players">Mängijate arvu järgi</button></div>
+      <div class="grid" style="margin-top:.8rem">
+        <label class="f" id="fRbH">Rebuy max aeg (h)<input data-s="rebuyHours" data-p="1" type="number" min="0.25" step="0.25" inputmode="decimal"></label>
+        <p class="note" id="fRbHn" style="grid-column:1/-1;margin:0"></p>
+        <label class="f" id="fRbL">Rebuy lubatud kuni taseme lõpuni<input data-s="rebuyLevels" data-p="1" type="number" min="1"></label>
+        <label class="f" id="fRbP">Rebuy lubatud, kuni mängijaid on üle<input data-s="rebuyMinPlayers" data-p="1" type="number" min="1"></label>
+        <label class="f">Max rebuy'd mängija kohta (0 = piiramatu)<input data-s="rebuyMax" type="number" min="0"></label>
+        <label class="f">Rebuy hind (€)<input data-s="rebuyPrice" data-p="1" type="number" min="0" step="any"></label>
+        <label class="f">Rebuy žetoonid<input data-s="rebuyChips" data-p="1" type="number" min="0" step="100"></label>
+        <label class="f">Add-on hind (€)<input data-s="addonPrice" data-p="1" type="number" min="0" step="any"></label>
+        <label class="f">Add-on žetoonid<input data-s="addonChips" data-p="1" type="number" min="0" step="100"></label>
+      </div>
+    </div>
+
+    <div class="sec"><h3>Žetoonid</h3>
+      <label class="chk"><input type="checkbox" id="autoChips"> Väärtused automaatselt stardistacki järgi</label>
+      <div style="overflow-x:auto;margin-top:.6rem"><table><thead><tr><th>Kas.</th><th>Värv</th><th>Väärtus</th><th>Olemas tk</th><th>Mängijale</th><th>Stardiks</th><th>Üle</th></tr></thead><tbody id="chipTable"></tbody></table></div>
+      <p class="note" id="chipSum"></p>
+    </div>
+
+    <div class="sec"><h3>Blindide struktuur <span class="tag" id="stTag"></span></h3>
+      <div class="grid" style="align-items:end">
+        <label class="chk"><input type="checkbox" id="bbAnte"> BB ante</label>
+        <label class="f">BB ante alates tasemest<input id="anteFrom" type="number" min="1"></label>
+      </div>
+      <div style="overflow-x:auto;margin-top:.8rem">
+        <table><thead><tr><th>#</th><th>SB</th><th>BB</th><th id="anteHead">Ante</th><th>Min</th><th></th></tr></thead><tbody id="lvTable"></tbody></table>
+      </div>
+      <div class="seg" style="margin-top:.7rem"><button id="addLv">+ Tase</button><button id="addBrk">+ Paus</button></div>
+      <p class="note">Tühi „Min“ = vaikimisi taseme pikkus. ▶ hüppab sellele tasemele. Käsitsi muutmine lülitab automaatse arvutuse välja; „Arvuta struktuur uuesti“ lülitab tagasi.</p>
+    </div>
+
+    <div class="sec"><h3>Väljamaksed</h3>
+      <div class="seg" id="payMode"><button data-m="auto">Automaatne (mängijate arvu järgi)</button><button data-m="custom">Oma jaotus</button></div>
+      <label class="f" style="margin-top:.8rem">Protsendid kohtade kaupa, komaga eraldatult (nt 50, 30, 20)<input id="payCustom" type="text" inputmode="decimal"></label>
+      <p class="note" id="payNote"></p>
+    </div>
+
+    <div class="sec"><h3>Google Sheets – tulemused ja hooaeg</h3>
+      <label class="f">Apps Scripti veebirakenduse URL<input data-s="gsUrl" type="url" placeholder="https://script.google.com/macros/s/…/exec"></label>
+      <div class="grid" style="margin-top:.8rem">
+        <label class="f">Hooaeg<input data-s="season" type="text"></label>
+        <label class="f">Punktisüsteem<select data-s="ptsMode"><option value="lin">Mängijad − koht + 1</option><option value="f1">F1 (25-18-15-12-10-8-6-4-2-1)</option><option value="itm">Ainult auhinnakohad (kohtade arv − koht + 1)</option></select></label>
+        <label class="f">Osalemise punktid<input data-s="ptsBase" type="number" min="0" step="any"></label>
+      </div>
+      <label class="chk" style="margin-top:.8rem"><input type="checkbox" id="gsAuto"> Varunda jooksev seis automaatselt Sheetsi (teises seadmes saab jätkata)</label>
+      <div class="seg" style="margin-top:.7rem"><button id="gsTest">Testi ühendust</button><button id="gsSave">💾 Salvesta tulemused</button><button id="gsLoad">⬇ Laadi seis Sheetsist</button></div>
+      <p class="note" id="gsNote">Tulemused saab salvestada, kui võitja on selgunud. Sama turniiri uuesti salvestamine kirjutab eelmise üle.</p>
+    </div>
+
+    <div class="sec"><h3>⏱ Time kutsumine</h3>
+      <div class="grid" style="align-items:end">
+        <label class="f">Time'i pikkus (sekundit)<input data-s="timeSec" type="number" min="5" max="300" step="5" inputmode="numeric"></label>
+        <div class="f"><span class="note" style="margin:0">Nupp / klahv</span><button id="bindKey">Seo nupp: <b id="bindLbl">T</b></button></div>
+      </div>
+      <label class="chk" style="margin-top:.7rem"><input type="checkbox" id="mediaKeys"> Meedianupud (play/pause, järgmine/eelmine lugu) käivitavad time'i</label>
+      <p class="note" style="margin-top:.2rem">Sobib pultidele ja kõrvaklappidele, mis saadavad meediaklahve. Leht mängib selleks vaikset heli ja telefoni teavitustesse ilmub meediamängija.</p>
+      <p class="note">Vajuta „Seo nupp“ ja seejärel füüsilist Bluetooth-nuppu (või mistahes klahvi) – see hakkab time'i käivitama. Sama nupu uuesti vajutamine lõpetab time'i. Viimased 10 sekundit tiksuvad, lõpus kõlab summer.</p>
+    </div>
+
+    <div class="sec"><h3>Heli</h3>
+      <div class="seg"><label class="chk"><input type="checkbox" id="soundOn"> Helisignaalid</label><button id="testSnd">Proovi heli</button></div>
+      <p class="note">Uus tase = fanfaar 🎺, pausi algus = kellamäng ☕, 1 minut enne = kolm kella 🔔. Telefonis hakkab heli tööle pärast esimest nupuvajutust.</p>
+    </div>
+
+    <div class="sec"><h3>Varukoopia</h3>
+      <p class="note" style="margin-top:0">Seis salvestub automaatselt selles brauseris. Teise seadmesse viimiseks kopeeri kood ja kleebi see seal siia.</p>
+      <textarea id="backup" rows="3" style="margin-top:.5rem;font-family:var(--mono);font-size:.8rem"></textarea>
+      <div class="seg" style="margin-top:.5rem"><button id="copyB">Kopeeri kood</button><button id="restB">Taasta koodist</button></div>
+    </div>
+
+    <div class="sec"><h3>Uus turniir</h3>
+      <button class="danger" id="reset">Lähtesta turniir (nimed ja seaded jäävad)</button>
+      <p class="note">Nullib kella, väljalangemised, rebuy'd ja add-on'id.</p>
+    </div>
+    <div class="sec"><p class="note">Klaviatuur: tühik = start/paus, ←/→ = tase, +/− = minut, F = täisekraan.</p></div>
+  </div>
+</div>
+
+<div class="ov" id="hist">
+  <div class="sheet">
+    <div class="top"><h2>📊 Ajalugu</h2><button class="pri" id="closeHist">Sulge</button></div>
+    <div id="histBody" style="margin-top:1rem"></div>
+  </div>
+</div>
+
+<div class="modal" id="modal"><div class="box"><h3 id="mT"></h3><div id="mB"></div><div class="btns" id="mBtns"></div></div></div>
+<div class="toast" id="toast"></div>
+<button id="alarm" title="Time (puuduta)" aria-label="Time"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="7.5"/><path d="M12 9.2v4l2.6 1.8"/><path d="M4.2 5.6 6.9 3.2M19.8 5.6l-2.7-2.4"/><path d="M7 19.6 5.6 21.2M17 19.6l1.4 1.6"/></svg></button>
+<div id="timeOv"><div class="tl">⏱ TIME</div><div id="timeName"></div><div id="timeNum">60</div><div class="tl2">Puuduta või vajuta nuppu uuesti, et lõpetada</div></div>
+
+<script>
+(()=>{
+const KEY='pokkeriTabloo.v2';
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const fmt=n=>Math.round(n).toLocaleString('et-EE');
+const eur=n=>fmt(n)+' €';
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const hm=m=>{m=Math.round(m);const h=Math.floor(m/60),x=m%60;return h?h+' h'+(x?' '+x+' min':''):x+' min';};
+
+/* ---------------- state ---------------- */
+const COLORS=[{c:'Valge',hex:'#f1f1f1'},{c:'Sinine',hex:'#2f6fe0'},{c:'Punane',hex:'#d8293b'},{c:'Roheline',hex:'#1f9d55'},{c:'Must',hex:'#1b1b1b'}];
+function mkPlayers(n,from=0){return Array.from({length:n},(_,i)=>({id:from+i+1,name:'Mängija '+(from+i+1),rb:0,ao:0,out:0,t:''}));}
+function defaults(){return{
+  name:'Kodune turniir',buyin:5,stack:500,startSB:1,durH:3,levelMin:15,autoStruct:true,started:false,
+  players:mkPlayers(8),nextId:9,
+  rebuyMode:'combo',rebuyLevels:4,rebuyMinPlayers:4,rebuyHours:2,rebuyMax:0,rebuyPrice:5,rebuyChips:500,addonPrice:5,addonChips:500,
+  levels:[],bbAnte:false,anteFrom:6,
+  idx:0,running:false,endsAt:0,remaining:0,warned:false,
+  payMode:'auto',payCustom:[50,30,20],sound:true,
+  autoChips:false,chips:COLORS.map((x,i)=>({...x,v:[1,2,5,25,100][i],on:true,have:null})),
+  keepAwake:true,timeSec:60,_t60:1,timeKey:'KeyT',timeKeyName:'T',tv:false,gsUrl:'',gsAuto:false,season:String(new Date().getFullYear()),ptsMode:'lin',ptsBase:1,tid:null,startedAt:null,savedAt:null};}
+let S=defaults();
+try{const raw=localStorage.getItem(KEY); if(raw) S=Object.assign(defaults(),JSON.parse(raw));}catch(e){}
+const DUR_OPTS=[1.5,2,2.5,3,3.5,4];
+const snapDur=h=>DUR_OPTS.reduce((b,x)=>Math.abs(x-h)<Math.abs(b-h)?x:b,DUR_OPTS[0]);
+S.durH=snapDur(+S.durH||3); if(S.startSB==null)S.startSB=0; if(!S._t60){S.timeSec=60;S._t60=1;}
+let gsTimer=null;
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}
+  if(S.gsAuto&&S.gsUrl){clearTimeout(gsTimer);gsTimer=setTimeout(()=>gsPost({action:'saveState',state:JSON.stringify(S)}).catch(()=>{}),8000);}}
+const paidIn=p=>S.buyin+p.rb*S.rebuyPrice+p.ao*S.addonPrice;
+
+const N=()=>S.players.length;
+const alivePl=()=>S.players.filter(p=>!p.out);
+const alive=()=>alivePl().length;
+const totRb=()=>S.players.reduce((s,p)=>s+p.rb,0), totAo=()=>S.players.reduce((s,p)=>s+p.ao,0);
+const chipsInPlay=()=>N()*S.stack+totRb()*S.rebuyChips+totAo()*S.addonChips;
+const pool=()=>N()*S.buyin+totRb()*S.rebuyPrice+totAo()*S.addonPrice;
+const durMs=i=>{const l=S.levels[i]; if(!l)return 0; const m=(l.min!=null&&l.min!=='')?+l.min:(l.brk?10:+S.levelMin||15); return Math.max(1,m)*60000;};
+const curRem=()=>S.running?Math.max(0,S.endsAt-Date.now()):S.remaining;
+const lvlNo=i=>{let n=0;for(let j=0;j<=i&&j<S.levels.length;j++) if(!S.levels[j].brk)n++;return n;};
+const anteLabel=()=>S.bbAnte?'BB ante':'Ante';
+
+/* ---------------- chips ---------------- */
+const VSETS={1:[1,2,5,25,100],5:[5,25,100,500,1000],10:[10,50,100,500,1000],25:[25,100,500,1000,5000],50:[50,100,500,1000,5000],
+  100:[100,500,1000,5000,10000],500:[500,1000,5000,10000,25000],1000:[1000,5000,10000,25000,100000],5000:[5000,25000,100000,500000,1000000]};
+const activeChips=()=>S.chips.filter(c=>c.on&&c.v>0).sort((a,b)=>a.v-b.v);
+function chipBase(){
+  if(!S.autoChips){const a=activeChips();return a.length?a[0].v:25;}
+  const c=[1,5,10,25,50,100,500,1000,5000]; let b=1; for(const x of c) if(S.stack/x>=300) b=x; return b;
+}
+function applyChipValues(){
+  if(!S.autoChips)return; const set=VSETS[chipBase()]; let i=0;
+  S.chips.forEach(c=>{if(c.on){c.v=set[Math.min(i,set.length-1)]*(i>=set.length?2**(i-set.length+1):1);i++;}});
+}
+const hasQty=c=>c.have!=null&&c.have!=='';
+const capOf=c=>hasQty(c)?Math.floor(+c.have/Math.max(1,N())):Infinity;
+function idealDist(act){
+  const res=new Map(); act.forEach(c=>res.set(c,0));
+  let use=act.filter(c=>c.v<=S.stack/5); if(!use.length)use=[act[0]];
+  let rem=S.stack;
+  for(let i=0;i<use.length-1;i++){const v=use[i].v; let n=Math.max(4,Math.round(2*use[i+1].v/v)); while(n>0&&n*v>rem*.45)n--; res.set(use[i],n); rem-=n*v;}
+  for(let i=use.length-1;i>=0;i--){const v=use[i].v,k=Math.floor(rem/v); res.set(use[i],res.get(use[i])+k); rem-=k*v;}
+  return res;
+}
+function distribute(){
+  const act=activeChips(); const res=new Map(); act.forEach(c=>res.set(c,0));
+  if(!act.length)return{res,rem:S.stack};
+  const t=idealDist(act);
+  if(act.every(c=>t.get(c)<=capOf(c))&&act.reduce((s,c)=>s+c.v*t.get(c),0)===S.stack)return{res:t,rem:0};
+  // exact search within available quantities, closest to the ideal mix
+  const d=[...act].sort((a,b)=>b.v-a.v), caps=d.map(capOf), tg=d.map(c=>t.get(c));
+  const below=d.map((_,i)=>d.slice(i+1).reduce((s,c,j)=>s+c.v*Math.min(caps[i+1+j],1e6),0));
+  let best=null,bestCost=Infinity,nodes=0; const cur=new Array(d.length).fill(0);
+  const cost=(n,i)=>{const x=tg[i];return((n-x)/Math.max(2,x))**2+.002*n;};
+  (function dfs(i,rem,c){
+    if(++nodes>300000||c>=bestCost)return;
+    const v=d[i].v;
+    if(i===d.length-1){ if(rem%v)return; const n=rem/v; if(n>caps[i])return; const cc=c+cost(n,i); if(cc<bestCost){bestCost=cc;cur[i]=n;best=[...cur];} return; }
+    const hi=Math.min(caps[i],Math.floor(rem/v),400);
+    const order=[];for(let n=0;n<=hi;n++)order.push(n); order.sort((a,b)=>Math.abs(a-tg[i])-Math.abs(b-tg[i]));
+    for(const n of order){const r2=rem-n*v; if(r2>below[i])continue; cur[i]=n; dfs(i+1,r2,c+cost(n,i));}
+  })(0,S.stack,0);
+  if(best){d.forEach((c,i)=>res.set(c,best[i]));return{res,rem:0};}
+  // fallback: greedy within caps
+  let rem=S.stack; for(let i=0;i<d.length;i++){const k=Math.min(caps[i],Math.floor(rem/d[i].v));res.set(d[i],k);rem-=k*d[i].v;}
+  return{res,rem};
+}
+function maxStack(){const act=activeChips(); if(!act.length||!act.every(hasQty))return null; return act.reduce((s,c)=>s+c.v*capOf(c),0);}
+function removable(){
+  const act=activeChips(); const amts=[]; S.levels.slice(S.idx).forEach(l=>{if(!l.brk){amts.push(l.sb,l.bb);if(l.ante)amts.push(l.ante);}});
+  const rm=new Set(); for(let i=0;i<act.length-1;i++){const nx=act[i+1].v; if(amts.length&&amts.every(a=>a%nx===0))rm.add(act[i]); else break;}
+  return rm;
+}
+
+/* ---------------- planner ---------------- */
+const BRK=10, PAT=[1,1.5,2,2.5,3,4,5,6,7.5];
+const NICE_MIN=[3,4,5,6,7,8,9,10,12,15,18,20,25,30,35,40,45,50,60];
+const niceMin=m=>NICE_MIN.reduce((b,x)=>Math.abs(x-m)<Math.abs(b-m)?x:b,NICE_MIN[0]);
+function expectedChips(){let c=N()*S.stack; if(S.rebuyMode!=='none')c+=Math.round(N()*.5)*S.rebuyChips; return c;}
+const targetBB=chips=>chips/20;
+function chipOk(v){const vals=activeChips().map(c=>c.v);if(!vals.length||vals.includes(v))return true;
+  const lo=vals.filter(x=>x<=v/2);if(!lo.length)return true;return v%Math.max(...lo)===0;}
+function sbLadder(b,max){const out=[];for(let e=-1;e<9;e++)for(const p of PAT){const v=Math.round(p*10**e*1e6)/1e6; if(v>=b&&Number.isInteger(v)&&v%b===0&&v<=max)out.push(v);} const u=[...new Set(out)].filter(chipOk).sort((a,b)=>a-b),r=[];for(const v of u)if(!r.length||v>=r[r.length-1]*1.15)r.push(v);return r;}
+function breakEvery(lm){return Math.max(2,Math.round(80/lm));}
+function estFor(L,lm){const be=breakEvery(lm);return L*lm+Math.floor((L-1)/be)*BRK;}
+function plan(fixedLm){
+  const b=chipBase(), tgt=targetBB(expectedChips()), D=Math.max(30,(+S.durH||3)*60);
+  const lad=sbLadder(b,tgt*8);
+  let best=null;
+  const fixSB=+S.startSB||0, depths=fixSB?[S.stack/(2*fixSB)]:[200,150,100,75,50,35];
+  for(const coarse of [false,true]) for(const depth of depths){
+    const startSB=fixSB||S.stack/(2*depth); let i0=fixSB?lad.findIndex(v=>v>=fixSB):lad.findIndex(v=>v>=startSB*0.9); if(i0<0)continue;
+    const seq=[lad[i0]]; for(let i=i0+1;i<lad.length;i++){ if(!coarse||lad[i]>=seq[seq.length-1]*1.4)seq.push(lad[i]); }
+    let L=seq.findIndex(sb=>sb*2>=tgt)+1; if(L<=0||L<4)continue;
+    let lm,score;
+    if(fixedLm){lm=fixedLm;const e=estFor(L,lm);score=Math.abs(Math.log(e/D))+(fixSB?0:.45*Math.abs(Math.log(depth/100)))+(coarse?.04:0);}
+    else{let raw=D/L; for(let k=0;k<3;k++){const nb=Math.floor((L-1)/breakEvery(raw));raw=(D-nb*BRK)/L;}
+      if(raw<3)raw=3; lm=niceMin(Math.min(60,raw)); score=Math.abs(Math.log(raw/15))+(fixSB?0:.15*Math.abs(Math.log(depth/100)))+(coarse?.05:0)+Math.abs(Math.log(estFor(L,lm)/D))*.5;}
+    if(!best||score<best.score)best={score,seq,L,lm,depth};
+  }
+  if(!best)return null;
+  const be=breakEvery(best.lm), lv=[]; const total=Math.min(best.seq.length,best.L+4);
+  for(let i=0;i<total;i++){ lv.push({sb:best.seq[i],bb:best.seq[i]*2,ante:0,min:null}); if((i+1)%be===0&&i<best.L-1)lv.push({brk:true,min:BRK}); }
+  return{levels:lv,lm:best.lm,L:best.L,depth:best.depth,est:estFor(best.L,best.lm)};
+}
+function estimate(levels,chips){
+  const tgt=targetBB(chips); let m=0,n=0,end=null;
+  for(let i=0;i<levels.length;i++){const l=levels[i]; m+=durMs.call(null,i)/60000; if(!l.brk){n++; if(l.bb>=tgt){end={i,n,bb:l.bb};break;}}}
+  return{min:m,end,tgt};
+}
+function applyAnte(){let n=0;S.levels.forEach(l=>{if(l.brk)return;n++;l.ante=S.bbAnte&&n>=(+S.anteFrom||1)?l.bb:0;});}
+function regen(src){
+  applyChipValues();
+  if(!S.autoStruct)return;
+  const p=plan(src==='levelMin'?+S.levelMin:null); if(!p)return;
+  S.levels=p.levels; S.levelMin=p.lm; applyAnte();
+  if(src==='levelMin') S.durH=snapDur(p.est/60);
+  S.idx=Math.min(S.idx,S.levels.length-1);
+  if(!S.running){S.remaining=durMs(S.idx);S.warned=false;}
+}
+if(!S.levels.length){regen();}
+
+/* ---------------- rebuy rules ---------------- */
+const playedMs=()=>{let m=0;for(let j=0;j<S.idx;j++)m+=durMs(j);return m+Math.max(0,durMs(S.idx)-curRem());};
+const halfLimit=()=>Math.floor(N()/2);
+function rebuyOpen(){
+  if(S.rebuyMode==='combo')return playedMs()<(+S.rebuyHours||2)*3600000&&alive()>halfLimit();
+  if(S.rebuyMode==='levels')return lvlNo(S.idx)<=S.rebuyLevels;
+  if(S.rebuyMode==='players')return alive()>S.rebuyMinPlayers;
+  return false;
+}
+const canRebuy=p=>rebuyOpen()&&(!S.rebuyMax||p.rb<S.rebuyMax);
+function rebuyText(){
+  if(S.rebuyMode==='none')return['Rebuy\'sid pole',false];
+  const o=rebuyOpen();
+  if(S.rebuyMode==='combo'){const left=(+S.rebuyHours||2)*3600000-playedMs();
+    return[o?'🔁 Rebuy avatud veel '+mmss(left)+' või kuni '+halfLimit()+' mängijat alles':'🔁 Rebuy suletud ('+(left<=0?'aeg täis':halfLimit()+' mängijat alles')+')',o];}
+  if(S.rebuyMode==='levels')return[o?'🔁 Rebuy avatud kuni taseme '+S.rebuyLevels+' lõpuni':'🔁 Rebuy suletud (oli kuni tase '+S.rebuyLevels+')',o];
+  return[o?'🔁 Rebuy avatud, kuni mängijaid on üle '+S.rebuyMinPlayers:'🔁 Rebuy suletud ('+S.rebuyMinPlayers+' või vähem mängijat)',o];
+}
+
+/* ---------------- sound / wake ---------------- */
+let ac=null;
+function audio(){try{if(!ac)ac=new (window.AudioContext||window.webkitAudioContext)(); if(ac.state==='suspended')ac.resume();}catch(e){} return ac;}
+document.addEventListener('pointerdown',audio);
+let master=null;
+function out(){const c=audio();if(!c)return null;
+  if(!master){const comp=c.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=4;master=c.createGain();master.gain.value=.9;master.connect(comp);comp.connect(c.destination);}
+  return master;}
+const NT={G3:196,C4:261.6,E4:329.6,G4:392,A4:440,C5:523.3,D5:587.3,E5:659.3,F5:698.5,G5:784,A5:880,C6:1046.5};
+// brass-like note: detuned saw+square through a filter that opens on attack
+function brass(f,st,d,vol=.22){const c=audio(),m=out();if(!c||!m)return;const t=c.currentTime+st;
+  const g=c.createGain(),flt=c.createBiquadFilter();flt.type='lowpass';flt.Q.value=2;
+  flt.frequency.setValueAtTime(f*1.5,t);flt.frequency.linearRampToValueAtTime(f*6,t+.06);flt.frequency.exponentialRampToValueAtTime(f*3,t+d);
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.04);g.gain.setValueAtTime(vol*.85,t+Math.max(.05,d-.08));g.gain.exponentialRampToValueAtTime(.0001,t+d+.12);
+  flt.connect(g);g.connect(m);
+  [['sawtooth',0],['sawtooth',7],['square',-5]].forEach(([ty,det])=>{const o=c.createOscillator();o.type=ty;o.frequency.value=f;o.detune.value=det;
+    const lfo=c.createOscillator(),lg=c.createGain();lfo.frequency.value=5.5;lg.gain.value=d>.4?6:0;lfo.connect(lg);lg.connect(o.detune);
+    o.connect(flt);o.start(t);o.stop(t+d+.15);lfo.start(t);lfo.stop(t+d+.15);});}
+// bell: inharmonic sine partials with long decay
+function bell(f,st,vol=.3,dec=1.6){const c=audio(),m=out();if(!c||!m)return;const t=c.currentTime+st;
+  [[1,1],[2.76,.45],[5.4,.25],[8.93,.12]].forEach(([k,a])=>{const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.value=f*k;
+    g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol*a,t+.005);g.gain.exponentialRampToValueAtTime(.0001,t+dec/k**.5);
+    o.connect(g);g.connect(m);o.start(t);o.stop(t+dec+.1);});}
+function drum(st){const c=audio(),m=out();if(!c||!m)return;const t=c.currentTime+st;const o=c.createOscillator(),g=c.createGain();
+  o.type='sine';o.frequency.setValueAtTime(140,t);o.frequency.exponentialRampToValueAtTime(50,t+.3);g.gain.setValueAtTime(.5,t);g.gain.exponentialRampToValueAtTime(.0001,t+.35);o.connect(g);g.connect(m);o.start(t);o.stop(t+.4);}
+// level up: ~3 s fanfare "ta-ta-ta-taaa, ta-taaaa" + chord
+function fanfare(){
+  const q=.16;[['G4',0],['G4',q],['G4',2*q]].forEach(([n,t])=>brass(NT[n],t,.13,.2));
+  brass(NT.C5,3*q,.55,.26);drum(3*q);
+  brass(NT.G4,3*q+.62,.13,.2);brass(NT.C5,3*q+.8,.13,.2);
+  const e=3*q+1.0;brass(NT.E5,e,1.5,.24);brass(NT.C5,e,1.5,.16);brass(NT.G4,e,1.5,.14);brass(NT.C4,e,1.5,.14);drum(e);drum(e+.18);
+}
+// break starts: relaxed descending chime
+function breakChime(){[['G5',0],['E5',.35],['C5',.7],['G4',1.05],['C5',1.5]].forEach(([n,t],i)=>bell(NT[n],t,.32,i===4?2.4:1.4));}
+// 1 minute left: three insistent bells + rising tail
+function warnBells(){[0,.42,.84].forEach(t=>bell(NT.A5,t,.34,1.1));bell(NT.C6,1.3,.3,1.8);bell(NT.E5,1.3,.2,1.8);}
+const sndLevel=(toBreak)=>{if(!S.sound)return; toBreak?breakChime():fanfare();};
+const sndWarn=()=>{if(!S.sound)return;warnBells();};
+let wl=null,wlVideo=null;
+async function wake(){
+  if(!S.keepAwake){try{wl&&await wl.release();}catch(e){}wl=null;if(wlVideo)wlVideo.pause();updWake();return;}
+  try{ if(navigator.wakeLock&&!wl){wl=await navigator.wakeLock.request('screen');wl.addEventListener('release',()=>{wl=null;updWake();});} }catch(e){}
+  if(!wl){ // fallback for older browsers: tiny silent looping video from a canvas
+    try{ if(!wlVideo){const c=document.createElement('canvas');c.width=c.height=2;const x=c.getContext('2d');let k=0;setInterval(()=>{x.fillStyle=k++%2?'#000':'#010101';x.fillRect(0,0,2,2);},1000);
+        wlVideo=document.createElement('video');wlVideo.muted=true;wlVideo.playsInline=true;wlVideo.setAttribute('playsinline','');wlVideo.loop=true;
+        wlVideo.style.cssText='position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;bottom:0;left:0';wlVideo.srcObject=c.captureStream(1);document.body.appendChild(wlVideo);}
+      await wlVideo.play(); }catch(e){}
+  }
+  updWake();
+}
+function updWake(){const b=$('#wakeBtn');if(!b)return;const on=!!wl||(wlVideo&&!wlVideo.paused);
+  b.textContent=S.keepAwake?(on?'💡':'💤'):'🌙';b.title=S.keepAwake?(on?'Ekraan hoitakse ärkvel':'Ärkvel hoidmine ootab puudutust'):'Ekraan võib magama minna';}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')wake();});
+document.addEventListener('pointerdown',()=>{if(S.keepAwake&&!wl)wake();});
+
+/* ---------------- clock ---------------- */
+function tick(){
+  if(S.running){
+    let rem=S.endsAt-Date.now(),steps=0;
+    while(rem<=0){ if(S.idx>=S.levels.length-1){rem=0;S.running=false;S.remaining=0;break;} S.idx++;rem+=durMs(S.idx);S.warned=false;steps++; }
+    if(steps){ if(S.running)S.endsAt=Date.now()+rem; if(steps<3)sndLevel(!!(S.levels[S.idx]&&S.levels[S.idx].brk)); save(); render(); }
+    if(S.running&&!S.warned&&rem<=60000){S.warned=true; if(rem>56000&&durMs(S.idx)>60000)sndWarn(); save();}
+  }
+  drawClock();
+}
+function toggle(){
+  if(!S.levels.length)return;
+  if(S.running){S.remaining=curRem();S.running=false;}
+  else{ if(S.remaining<=0){if(S.idx<S.levels.length-1)S.idx++;S.remaining=durMs(S.idx);S.warned=false;}
+    S.endsAt=Date.now()+S.remaining;S.running=true;S.started=true;if(!S.tid){S.tid='T'+Date.now();S.startedAt=Date.now();}audio();}
+  save();render();
+}
+function goLevel(i){i=Math.max(0,Math.min(S.levels.length-1,i));S.idx=i;S.remaining=durMs(i);S.warned=false;if(S.running)S.endsAt=Date.now()+S.remaining;save();render();}
+function addMin(d){const r=Math.max(1000,curRem()+d*60000);S.remaining=r;if(S.running)S.endsAt=Date.now()+r;if(r>60000)S.warned=false;save();drawClock();}
+
+/* ---------------- render ---------------- */
+function mmss(ms){const s=Math.ceil(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return(h?h+':'+String(m).padStart(2,'0'):m)+':'+String(x).padStart(2,'0');}
+const blindsTxt=l=>fmt(l.sb)+' / '+fmt(l.bb);
+function blindsGrid(l,nx,nxLabel){return`<div class="bl"><span class="lab l">SB</span><span></span><span class="lab rr">BB</span>
+  <span class="l">${fmt(l.sb)}</span><span class="sl">/</span><span class="rr">${fmt(l.bb)}</span>`+
+  (nx?`<span class="nx l">${fmt(nx.sb)}</span><span class="nxl">${nxLabel||'järgmine'}</span><span class="nx rr">${fmt(nx.bb)}</span>`:'')+`</div>`;}
+function drawClock(){
+  const l=S.levels[S.idx],rem=curRem(),tot=durMs(S.idx)||1,isB=!!(l&&l.brk);
+  const t=$('#timer');t.textContent=mmss(rem);t.classList.toggle('paused',!S.running);t.classList.toggle('last',S.running&&rem<=60000&&!isB);
+  const bar=$('#bar');bar.querySelector('i').style.width=(100*(1-rem/tot)).toFixed(2)+'%';bar.classList.toggle('brk',isB);bar.classList.toggle('last',rem<=60000&&!isB);
+  let tb='';
+  if(!isB){let sum=rem,f=false;for(let j=S.idx+1;j<S.levels.length;j++){if(S.levels[j].brk){f=true;break;}sum+=durMs(j);} tb=f?'☕ Pausini '+mmss(sum):'';}
+  $('#tobreak').textContent=tb;
+  // estimated end
+  const e=estimate(S.levels,chipsInPlay()); let et='';
+  if(e.end&&S.idx<=e.end.i&&alive()>1){let sum=rem;for(let j=S.idx+1;j<=e.end.i;j++)sum+=durMs(j);
+    const d=new Date(Date.now()+sum);et='Hinnanguline lõpp ~'+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+(S.running?'':' (kui kell käib)');}
+  $('#endest').textContent=et;
+  if(S.rebuyMode==='combo'){const [rt,ro]=rebuyText();const rb=$('#rbst');if(rb.textContent!==rt){rb.textContent=rt;rb.classList.toggle('off',!ro);}}
+  $('#status').textContent=!S.levels.length?'':(rem<=0&&S.idx>=S.levels.length-1?'STRUKTUURI LÕPP':(S.running?'':'⏸ PAUS'));
+}
+function payPcts(){
+  if(S.payMode==='custom'&&S.payCustom.length)return S.payCustom;
+  const n=N(); if(n<=4)return[100];if(n<=7)return[65,35];if(n<=10)return[50,30,20];if(n<=15)return[45,27,18,10];
+  if(n<=20)return[40,25,17,11,7];if(n<=30)return[35,22,15,11,9,8];if(n<=45)return[30,20,14,10,8,7,6,5];return[27,18,13,10,8,7,6,5,3.5,2.5];
+}
+function prizes(){const p=pool(),pc=payPcts(),a=pc.map(x=>Math.floor(p*x/100)),u=a.reduce((s,x)=>s+x,0),tp=pc.reduce((s,x)=>s+x,0);if(a.length&&Math.abs(tp-100)<.01)a[0]+=Math.round(p-u);return a;}
+const badges=p=>(p.rb?`<span class="badge r">R${p.rb}</span>`:'')+(p.ao?`<span class="badge a">A${p.ao}</span>`:'');
+
+function render(){
+  $('#tname').textContent=S.name||'Turniir';document.title=(S.name||'Turniir')+' · tabloo';
+  const l=S.levels[S.idx],lv=$('#lvl');
+  if(!l){lv.textContent='Struktuur puudub';$('#blinds').textContent='—';$('#ante').textContent='';$('#next').textContent='';}
+  else if(l.brk){lv.textContent='☕ Paus';lv.classList.add('brk');const ni=S.levels.findIndex((x,j)=>j>S.idx&&!x.brk),n=S.levels[ni];
+    const n2=n?S.levels.slice(ni+1).find(x=>!x.brk):null;
+    $('#blinds').innerHTML=n?blindsGrid(n,n2,'siis'):'—';$('#ante').textContent=n&&n.ante?anteLabel()+' '+fmt(n.ante):'';$('#next').innerHTML=n?'Pärast pausi: tase '+lvlNo(ni):'';}
+  else{lv.textContent='Tase '+lvlNo(S.idx);lv.classList.remove('brk');$('#ante').textContent=l.ante?anteLabel()+' '+fmt(l.ante):'';
+    const nx=S.levels[S.idx+1];
+    if(!nx){$('#blinds').innerHTML=blindsGrid(l);$('#next').textContent='Viimane tase';}
+    else if(nx.brk){const n2=S.levels.slice(S.idx+2).find(x=>!x.brk);$('#blinds').innerHTML=blindsGrid(l,n2,'pärast pausi');$('#next').innerHTML='Järgmine: <b>☕ PAUS '+durMs(S.idx+1)/60000+' min</b>';}
+    else{$('#blinds').innerHTML=blindsGrid(l,nx);$('#next').innerHTML=nx.ante&&!l.ante?'Järgmisel tasemel '+anteLabel()+' <b>'+fmt(nx.ante)+'</b>':'';}}
+  $('#go').textContent=S.running?'⏸ Paus':'▶ Start';$('#timeKeyLbl').textContent=S.timeKeyName;$('#snd').textContent=S.sound?'🔔':'🔕';
+
+  const a=alive(),chips=chipsInPlay();
+  $('#sAlive').textContent=a+' / '+N();
+  $('#sRA').textContent=totRb()+' / '+totAo();
+  $('#sChips').textContent=fmt(chips);
+  const curBB=(l&&!l.brk)?l.bb:((S.levels.slice(S.idx).find(x=>!x.brk)||{}).bb),avg=a?chips/a:0;
+  $('#sAvg').innerHTML=fmt(avg)+(curBB?'<small>'+(avg/curBB).toLocaleString('et-EE',{maximumFractionDigits:1})+' BB</small>':'');
+  $('#bust').disabled=a<=1;$('#bust').style.opacity=a<=1?.4:1;
+  const [rt,ro]=rebuyText();const rb=$('#rbst');rb.textContent=rt;rb.classList.toggle('off',!ro);
+  $('#rbBtn').style.display=S.rebuyMode==='none'?'none':'';
+
+  const pr=prizes();$('#pool').textContent=eur(pool());
+  $('#payList').innerHTML=pr.map((x,i)=>`<div class="row itm"><span class="p">${i+1}.</span><span class="n mut">${payPcts()[i]}%</span><span class="a">${eur(x)}</span></div>`).join('');
+
+  const rows=[];
+  const inn=p=>`<span class="in" title="Sisse kokku">${eur(paidIn(p))}</span>`;
+  if(a===1){const w=alivePl()[0];rows.push(`<div class="row win pl" data-pid="${w.id}"><span class="p">1.</span><span class="n">🏆 ${esc(w.name)}${badges(w)}</span>${inn(w)}<span class="a">${pr[0]?eur(pr[0]):''}</span></div>`);}
+  else alivePl().forEach(p=>rows.push(`<div class="row pl" data-pid="${p.id}"><span class="p">●</span><span class="n">${esc(p.name)}${badges(p)}</span>${inn(p)}</div>`));
+  S.players.filter(p=>p.out).sort((x,y)=>x.out-y.out).forEach(p=>{const z=pr[p.out-1];
+    rows.push(`<div class="row pl outp${z?' itm':''}" data-pid="${p.id}"><span class="p">${p.out}.</span><span class="n">${esc(p.name)}${badges(p)}</span>${inn(p)}<span class="a">${z?eur(z):''}</span></div>`);});
+  $('#outList').innerHTML=rows.join('');$('#outList').classList.toggle('two',N()>14);$('#outList').classList.toggle('many',N()>9);
+  document.body.classList.toggle('tv',!!S.tv);
+  renderChips();drawClock();
+}
+function renderChips(){
+  const {res}=distribute(),rm=removable(),act=activeChips();
+  $('#chipRow').innerHTML=act.map(c=>`<div class="chip${/^#f/i.test(c.hex)?' light':''}${rm.has(c)?' rm':''}" style="--c:${c.hex}" title="${c.c}"><i></i><span>${fmt(c.v)}</span><small>${res.get(c)?res.get(c)+' tk':'—'}</small></div>`).join('')||'<span class="mut">Määra seadetes</span>';
+  $('#chipNote').textContent=rm.size?'✕ = võib lauast eemaldada (color up)':'';
+}
+
+/* ---------------- modal ---------------- */
+function modal(title,body,btns=[],cancel='Tühista'){
+  $('#mT').textContent=title;$('#mB').innerHTML=body;const box=$('#mBtns');box.innerHTML='';
+  if(cancel){const c=document.createElement('button');c.textContent=cancel;c.onclick=closeM;box.appendChild(c);}
+  btns.forEach(b=>{const e=document.createElement('button');e.textContent=b.t;e.className=b.cls||'pri';e.onclick=()=>{closeM();b.fn&&b.fn();};box.appendChild(e);});
+  $('#modal').classList.add('on');const i=$('#mB input');if(i)setTimeout(()=>i.focus(),50);
+}
+const closeM=()=>$('#modal').classList.remove('on');
+$('#mB').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const b=$$('#mBtns button');b[b.length-1].click();}});
+function toast(t){const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(e._t);e._t=setTimeout(()=>e.style.display='none',2400);}
+function pick(title,list,fn,extra=''){
+  modal(title,extra+'<div class="pbtns">'+list.map(p=>`<button data-pk="${p.id}">${esc(p.name)}${badges(p)}</button>`).join('')+'</div>');
+  $$('[data-pk]').forEach(b=>b.onclick=()=>{closeM();fn(S.players.find(p=>p.id==b.dataset.pk));});
+}
+const P=id=>S.players.find(p=>p.id==id);
+const nowT=()=>{const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');};
+
+/* ---------------- player actions ---------------- */
+function doRebuy(p){p.rb++;save();render();toast('🔁 Rebuy: '+p.name+' (+'+fmt(S.rebuyChips)+')');}
+function rebuyFlow(p){
+  if(canRebuy(p))return doRebuy(p);
+  const why=S.rebuyMax&&p.rb>=S.rebuyMax?'Mängijal on juba '+p.rb+' rebuy\'d (max '+S.rebuyMax+').':'Rebuy periood on läbi.';
+  modal('Rebuy – '+p.name,'<p>'+why+' Lisan ikkagi?</p>',[{t:'Lisa ikkagi',fn:()=>doRebuy(p)}]);
+}
+function bustOut(p){const place=alive();p.out=place;p.t=nowT();save();render();
+  if(alive()===1)setTimeout(()=>{const w=alivePl()[0];modal('🏆 '+w.name+' võitis!','<p>Auhind: <b style="color:var(--acc)">'+eur(prizes()[0]||0)+'</b></p>'+(S.gsUrl?'':'<p class="note">Lisa seadetes Google Sheetsi URL, et tulemusi hooaja edetabelisse salvestada.</p>'),
+    S.gsUrl?[{t:'💾 Salvesta Sheetsi',fn:saveResults}]:[],'Sulge');},200);}
+function bustFlow(p){
+  const place=alive(),pz=prizes()[place-1];
+  const info='<p>'+place+'. koht'+(pz?' · auhind <b style="color:var(--acc)">'+eur(pz)+'</b>':'')+'</p>';
+  const btns=[];
+  if(canRebuy(p))btns.push({t:'🔁 Rebuy ('+eur(S.rebuyPrice)+')',cls:'',fn:()=>doRebuy(p)});
+  btns.push({t:'✖ Välja',cls:'danger',fn:()=>bustOut(p)});
+  modal(p.name+' kaotas žetoonid',info+(canRebuy(p)?'<p class="note">Rebuy on veel lubatud.</p>':''),btns);
+}
+$('#bust2').onclick=()=>$('#bust').click();$('#rb2').onclick=()=>$('#rbBtn').click();$('#ao2').onclick=()=>$('#aoBtn').click();
+$('#bust').onclick=()=>{if(alive()>1)pick('Kes langes välja?',alivePl(),bustFlow);};
+$('#rbBtn').onclick=()=>{const [t,o]=rebuyText();pick('Rebuy – kes?',alivePl(),rebuyFlow,o?'':'<p class="note" style="color:var(--warn)">'+t+'</p>');};
+$('#aoBtn').onclick=()=>pick('Add-on – kes?',alivePl(),p=>{p.ao++;save();render();toast('➕ Add-on: '+p.name);},
+  '<p class="note">Kõigile korraga: <button id="aoAll" style="padding:.3em .7em">Kõik mängus olijad</button></p>');
+document.addEventListener('click',e=>{if(e.target.id==='aoAll'){closeM();alivePl().forEach(p=>p.ao++);save();render();toast('➕ Add-on kõigile');}});
+$('#outList').addEventListener('click',e=>{
+  const r=e.target.closest('[data-pid]');if(!r)return;const p=P(r.dataset.pid);
+  const btns=[];
+  if(!p.out){
+    if(S.rebuyMode!=='none')btns.push({t:'🔁 Rebuy',cls:'',fn:()=>rebuyFlow(p)});
+    btns.push({t:'➕ Add-on',cls:'',fn:()=>{p.ao++;save();render();}});
+    if(p.rb)btns.push({t:'− Rebuy',cls:'ghost',fn:()=>{p.rb--;save();render();}});
+    if(p.ao)btns.push({t:'− Add-on',cls:'ghost',fn:()=>{p.ao--;save();render();}});
+    if(alive()>1)btns.push({t:'✖ Välja',cls:'danger',fn:()=>bustFlow(p)});
+  }else{
+    const minOut=Math.min(...S.players.filter(x=>x.out).map(x=>x.out));
+    if(p.out===minOut)btns.push({t:'↶ Tagasi mängu',cls:'',fn:()=>{p.out=0;p.t='';save();render();}});
+    if(p.rb)btns.push({t:'− Rebuy',cls:'ghost',fn:()=>{p.rb--;save();render();}});
+  }
+  modal(p.name,`<p class="mut">Rebuy'd: <b>${p.rb}</b> · Add-on'id: <b>${p.ao}</b>${p.out?' · '+p.out+'. koht':''}</p>`+(p.out&&!btns.length?'<p class="note">Tagasi saab võtta ainult viimati välja langenud mängija.</p>':''),btns,'Sulge');
+  $('#mBtns').style.flexWrap='wrap';
+});
+
+/* ---------------- controls ---------------- */
+$('#go').onclick=toggle;$('#prev').onclick=()=>goLevel(S.idx-1);$('#nextB').onclick=()=>goLevel(S.idx+1);
+$('#plus').onclick=()=>addMin(1);$('#minus').onclick=()=>addMin(-1);
+$('#snd').onclick=()=>{S.sound=!S.sound;save();render();if(S.sound)sndWarn();};
+function fullscreen(){try{const d=document;if(d.fullscreenElement)d.exitFullscreen();else{const p=d.documentElement.requestFullscreen&&d.documentElement.requestFullscreen();p&&p.catch&&p.catch(()=>toast('Täisekraan pole siin lubatud'));}}catch(e){toast('Täisekraan pole siin lubatud');}}
+$('#fs').onclick=fullscreen;
+$('#wakeBtn').onclick=()=>{S.keepAwake=!S.keepAwake;save();wake();toast(S.keepAwake?'💡 Ekraan hoitakse ärkvel':'🌙 Ekraan võib magama minna');};
+document.addEventListener('keydown',e=>{
+  if(/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)||$('#modal').classList.contains('on')||$('#set').classList.contains('on')||$('#hist').classList.contains('on'))return;
+  if(e.code==='Space'){e.preventDefault();toggle();}else if(e.key==='ArrowRight')goLevel(S.idx+1);else if(e.key==='ArrowLeft')goLevel(S.idx-1);
+  else if(e.key==='+'||e.key==='=')addMin(1);else if(e.key==='-')addMin(-1);else if(e.key==='f'||e.key==='F')fullscreen();
+});
+
+/* ---------------- settings ---------------- */
+const canAuto=()=>!S.started;
+function renderSettings(){
+  const ae=document.activeElement;
+  $$('[data-s]').forEach(i=>{if(i!==ae)i.value=S[i.dataset.s];});
+  if($('#nPlayers')!==ae)$('#nPlayers').value=N();
+  $('#bbAnte').checked=S.bbAnte;if($('#anteFrom')!==ae)$('#anteFrom').value=S.anteFrom;$('#anteHead').textContent=anteLabel();
+  $$('#payMode button').forEach(b=>b.classList.toggle('on',b.dataset.m===S.payMode));
+  if($('#payCustom')!==ae)$('#payCustom').value=(S.payMode==='custom'?S.payCustom:payPcts()).join(', ');
+  $('#payCustom').disabled=S.payMode!=='custom';
+  $('#bindLbl').textContent=S.timeKeyName;$('#mediaKeys').checked=!!S.mediaKeys;  $('#soundOn').checked=S.sound;$('#autoChips').checked=S.autoChips;$('#gsAuto').checked=S.gsAuto;
+  $$('#rbMode button').forEach(b=>b.classList.toggle('on',b.dataset.m===S.rebuyMode));
+  $('#fRbL').style.display=S.rebuyMode==='levels'?'':'none';$('#fRbH').style.display=S.rebuyMode==='combo'?'':'none';$('#fRbHn').style.display=S.rebuyMode==='combo'?'':'none';
+  $('#fRbHn').textContent='Rebuy suletakse, kui mänguaeg (kell, pausid kaasa arvatud) ületab '+(+S.rebuyHours||2).toLocaleString('et-EE')+' h või kui alles on pooled mängijad (allapoole ümardatud): '+N()+' mängijaga kuni '+halfLimit()+' alles.';$('#fRbP').style.display=S.rebuyMode==='players'?'':'none';
+  renderReadout();renderPayNote();renderTable();renderChipTable();renderNames();
+}
+function renderReadout(){
+  const e=estimate(S.levels,expectedChips()); const first=S.levels.find(l=>!l.brk);
+  const nb=e.end?S.levels.slice(0,e.end.i).filter(l=>l.brk).length:0;
+  $('#stTag').textContent=S.autoStruct?'automaatne':'käsitsi muudetud';$('#stTag').className='tag '+(S.autoStruct?'auto':'man');
+  $('#readout').innerHTML=(first?`Algus <b>${blindsTxt(first)}</b> (${fmt(S.stack/first.bb)} BB sügav) · `:'')+
+    (e.end?`lõpp eeldatavalt umbes <b>tase ${e.end.n}</b> (BB ${fmt(e.end.bb)}) · pause enne lõppu <b>${nb}</b><br>Hinnanguline kestus <b>${hm(e.min)}</b>`:'Struktuur ei jõua lõpuni – lisa tasemeid')+
+    (()=>{const ms=maxStack();return ms!=null?`<br>Olemasolevatest žetoonidest jagub ${N()} mängijale kuni <b>${fmt(ms)}</b> stacki`+(ms<S.stack?' <span style="color:var(--bad)">⚠ valitud stack on suurem</span> <button id="useMax" style="padding:.2em .6em;font-size:.9rem">Kasuta '+fmt(niceDown(ms))+'</button>':''):''})()+
+    `<br><span class="mut">Lõpp = BB ≈ 1/20 kõigist žetoonidest (${fmt(expectedChips())}${S.rebuyMode!=='none'?', arvestab ~0,5 rebuy\'d mängija kohta':''}).</span>`+
+    (S.started&&S.autoStruct?'<br><span style="color:var(--warn)">Turniir käib – struktuuri automaatselt ei muudeta. Kasuta nuppu allpool.</span>':'');
+}
+function renderPayNote(){const t=payPcts().reduce((s,x)=>s+x,0);
+  $('#payNote').innerHTML=(Math.abs(t-100)>.01?'<span style="color:var(--bad)">⚠ Kokku '+t+'% (peaks olema 100%)</span> · ':'')+'Fond '+eur(pool())+' → '+prizes().map((x,i)=>(i+1)+'. '+eur(x)).join(', ');}
+function renderNames(){
+  const ae=document.activeElement; if(ae&&ae.dataset&&ae.dataset.nm)return;
+  $('#plNames').innerHTML=S.players.map(p=>`<div style="display:flex;gap:.4rem"><input data-nm="${p.id}" type="text" value="${esc(p.name)}"${p.out?' style="opacity:.6"':''}><button class="x danger" data-rmp="${p.id}" title="Eemalda" style="padding:.3em .7em">✕</button></div>`).join('');
+}
+function niceDown(x){const st=x>=20000?1000:x>=5000?500:100;return Math.max(st,Math.floor(x/st)*st);}
+function renderChipTable(){
+  const {res,rem}=distribute(), n0=N();
+  let rbStacks=Infinity;
+  $('#chipTable').innerHTML=S.chips.map((c,i)=>{const n=c.on?res.get(c)||0:0,start=n*n0,left=hasQty(c)?+c.have-start:null;
+    if(c.on&&n>0&&left!=null)rbStacks=Math.min(rbStacks,Math.floor(left/n));
+    return`<tr style="opacity:${c.on?1:.45}"><td><label class="chk"><input type="checkbox" data-ci="${i}" data-ck="on" ${c.on?'checked':''}></label></td>
+   <td style="white-space:nowrap"><span style="display:inline-block;width:1.1em;height:1.1em;border-radius:50%;background:${c.hex};border:2px solid #888;vertical-align:-.2em"></span> ${c.c}</td>
+   <td><input data-ci="${i}" data-ck="v" type="number" min="0" inputmode="numeric" value="${c.v}" ${S.autoChips?'disabled':''}></td>
+   <td><input data-ci="${i}" data-ck="have" type="number" min="0" inputmode="numeric" placeholder="?" value="${c.have??''}"></td>
+   <td style="font-family:var(--mono);font-weight:800">${c.on?n:''}</td>
+   <td style="font-family:var(--mono)">${c.on?start:''}</td>
+   <td style="font-family:var(--mono);${left!=null&&left<0?'color:var(--bad)':''}">${c.on&&left!=null?left:''}</td></tr>`;}).join('');
+  const sum=S.chips.reduce((s,c)=>s+(c.on?(res.get(c)||0)*c.v:0),0);
+  $('#chipSum').innerHTML='Ühe mängija stack: <b>'+fmt(sum)+'</b>'+(rem?' <span style="color:var(--bad)">⚠ '+fmt(rem)+' jääb puudu – olemasolevatest žetoonidest ei jätku või stack ei jagu väikseima žetooniga</span>':' ✓')+
+    (rbStacks!==Infinity&&rbStacks>=0?'<br>Ülejäänud žetoonidest jätkub veel umbes <b>'+rbStacks+'</b> rebuy/add-on stackiks (sama jaotusega; suuremaid žetoone saab ka vahetuseks kasutada).':'')+
+    (S.chips.some(c=>c.on&&hasQty(c))?'':'<br><span class="mut">Sisesta „Olemas tk“, siis jaotus arvestab, et igale '+n0+' mängijale jätkuks.</span>');
+}
+function renderTable(){
+  let n=0;
+  $('#lvTable').innerHTML=S.levels.map((l,i)=>{const cur=i===S.idx?' cur':'',go=`<button class="x ghost" data-go="${i}" title="Mine sellele tasemele">▶</button>`;
+    if(l.brk)return`<tr class="brk${cur}"><td>${go}</td><td colspan="3"><b>☕ PAUS</b></td><td><input data-i="${i}" data-k="min" type="number" min="1" value="${l.min??''}"></td><td><button class="x danger" data-del="${i}">✕</button></td></tr>`;
+    n++;return`<tr class="${cur}"><td>${go} ${n}</td>`+['sb','bb','ante'].map(k=>`<td><input data-i="${i}" data-k="${k}" type="number" min="0" inputmode="numeric" value="${l[k]}"></td>`).join('')+
+      `<td><input data-i="${i}" data-k="min" type="number" min="1" placeholder="${S.levelMin}" value="${l.min??''}"></td><td><button class="x danger" data-del="${i}">✕</button></td></tr>`;}).join('');
+}
+function afterParam(src){ if(canAuto())regen(src); else applyChipValues(); save(); render(); renderSettings(); }
+$('#openSet').onclick=()=>{renderSettings();$('#set').classList.add('on');document.body.style.overflow='hidden';};
+$('#closeSet').onclick=()=>{$('#set').classList.remove('on');document.body.style.overflow='';render();};
+$$('[data-s]').forEach(i=>{
+  const k=i.dataset.s, planner=['durH','stack','levelMin','startSB'].includes(i.dataset.p);
+  i.addEventListener(planner?'change':'input',()=>{
+    S[k]=(i.type==='number'||k==='durH')?Math.max(0,+i.value||0):i.value.trim?i.value:i.value;
+    if(k==='stack'&&S.stack<100)S.stack=100; if(k==='levelMin'&&S.levelMin<1)S.levelMin=1;
+    if(k==='stack'){ if(S.rebuyChips===S._lastStack||!S._lastStack)S.rebuyChips=S.stack; if(S.addonChips===S._lastStack||!S._lastStack)S.addonChips=S.stack; }
+    S._lastStack=S.stack;
+    if(k==='buyin'){ if(S.rebuyPrice===S._lastBuy||S._lastBuy==null)S.rebuyPrice=S.buyin; if(S.addonPrice===S._lastBuy||S._lastBuy==null)S.addonPrice=S.buyin; S._lastBuy=S.buyin; }
+    if(planner||k==='rebuyChips')afterParam(k); else{save();render();renderSettings();}
+  });
+});
+S._lastStack=S._lastStack||S.stack; S._lastBuy=S._lastBuy??S.buyin;
+$('#nPlayers').addEventListener('change',e=>{
+  let n=Math.max(2,Math.min(60,+e.target.value||2));
+  while(N()<n)S.players.push({id:S.nextId,name:'Mängija '+S.nextId++,rb:0,ao:0,out:0,t:''});
+  while(N()>n){const i=[...S.players].reverse().findIndex(p=>!p.out&&!p.rb&&!p.ao);if(i<0)break;S.players.splice(N()-1-i,1);}
+  afterParam('players');
+});
+$('#plNames').addEventListener('input',e=>{const id=e.target.dataset.nm;if(!id)return;P(id).name=e.target.value;save();render();});
+$('#plNames').addEventListener('click',e=>{const id=e.target.dataset.rmp;if(!id)return;if(N()<=2)return toast('Vähemalt 2 mängijat');
+  const p=P(id);if(p.out)return toast('Väljalangenud mängijat ei saa eemaldada');S.players=S.players.filter(x=>x!==p);afterParam('players');});
+$('#addPl').onclick=()=>{S.players.push({id:S.nextId,name:'Mängija '+S.nextId++,rb:0,ao:0,out:0,t:''});afterParam('players');
+  setTimeout(()=>{const ins=$$('[data-nm]');const l=ins[ins.length-1];l&&(l.focus(),l.select());},50);};
+
+$('#regen').onclick=()=>{const go=()=>{S.autoStruct=true;regen();save();render();renderSettings();toast('Struktuur arvutatud');};
+  if(S.started)modal('Arvuta uuesti?','<p>Turniir käib. Struktuur asendatakse, praegune tase jääb samaks numbriks.</p>',[{t:'Arvuta',fn:go}]);else go();};
+$('#rbMode').onclick=e=>{const m=e.target.dataset.m;if(!m)return;S.rebuyMode=m;afterParam('rebuy');};
+$('#stdBtn').onclick=()=>{const go=()=>{
+    Object.assign(S,{stack:500,startSB:1,autoChips:false,rebuyChips:500,addonChips:500,autoStruct:true,bbAnte:false,buyin:5,rebuyPrice:5,addonPrice:5,rebuyMode:'combo',rebuyHours:2,timeSec:60});S._lastBuy=5;
+    S._lastStack=500; S.chips.forEach((c,i)=>{c.v=[1,2,5,25,100][i];c.on=true;});
+    regen();save();render();renderSettings();toast('⭐ Standardseadistus laetud');};
+  if(S.started)modal('Lae standardseadistus?','<p>Turniir käib – stack, žetoonid ja struktuur muutuvad.</p>',[{t:'Lae',fn:go}]);else go();};
+$('#readout').addEventListener('click',e=>{if(e.target.id==='useMax'){S.stack=niceDown(maxStack());afterParam('stack');}});
+$('#gsAuto').onchange=e=>{S.gsAuto=e.target.checked;save();};
+$('#tvBtn').onclick=()=>{S.tv=!S.tv;save();render();poke();toast(S.tv?'📺 Telerivaade: puuduta ekraani, et nupud ilmuksid':'Tavavaade');};
+$('#autoChips').onchange=e=>{S.autoChips=e.target.checked;afterParam('chips');};
+$('#chipTable').addEventListener('change',e=>{const i=e.target.dataset.ci,k=e.target.dataset.ck;if(i==null)return;const c=S.chips[i];
+  if(k==='on')c.on=e.target.checked;else if(k==='have')c.have=e.target.value===''?null:Math.max(0,+e.target.value);else c[k]=Math.max(0,+e.target.value||0);
+  afterParam('chips');});
+$('#bbAnte').onchange=e=>{S.bbAnte=e.target.checked;applyAnte();save();renderSettings();render();};
+$('#anteFrom').oninput=e=>{S.anteFrom=Math.max(1,+e.target.value||1);applyAnte();save();renderTable();render();};
+$('#lvTable').addEventListener('input',e=>{const i=e.target.dataset.i,k=e.target.dataset.k;if(i==null)return;const v=e.target.value;
+  S.levels[i][k]=k==='min'?(v===''?null:Math.max(1,+v)):Math.max(0,+v||0);S.autoStruct=false;save();render();renderReadout();});
+$('#lvTable').addEventListener('click',e=>{const d=e.target.dataset.del,g=e.target.dataset.go;
+  if(d!=null){S.levels.splice(+d,1);S.autoStruct=false;if(S.idx>=S.levels.length)S.idx=Math.max(0,S.levels.length-1);else if(+d<S.idx)S.idx--;save();renderSettings();render();}
+  if(g!=null){goLevel(+g);renderTable();}});
+$('#addLv').onclick=()=>{const last=[...S.levels].reverse().find(l=>!l.brk)||{sb:25};const lad=sbLadder(chipBase(),last.sb*10);const sb=lad.find(v=>v>last.sb*1.2)||last.sb*2;
+  S.levels.push({sb,bb:sb*2,ante:S.bbAnte?sb*2:0,min:null});S.autoStruct=false;save();renderSettings();render();};
+$('#addBrk').onclick=()=>{S.levels.push({brk:true,min:10});S.autoStruct=false;save();renderSettings();render();};
+$('#payMode').onclick=e=>{const m=e.target.dataset.m;if(!m)return;if(m==='custom'&&S.payMode!=='custom')S.payCustom=payPcts().slice();S.payMode=m;save();renderSettings();render();};
+$('#payCustom').oninput=e=>{S.payCustom=e.target.value.split(/[;,\s]+/).map(x=>parseFloat(x.replace(',','.'))).filter(x=>x>0);save();renderPayNote();render();};
+$('#soundOn').onchange=e=>{S.sound=e.target.checked;save();render();};
+$('#testSnd').onclick=()=>{audio();fanfare();setTimeout(breakChime,3600);setTimeout(warnBells,6400);toast('🎺 Tase → ☕ Paus → 🔔 1 min');};
+$('#copyB').onclick=async()=>{const t=JSON.stringify(S);$('#backup').value=t;$('#backup').select();try{await navigator.clipboard.writeText(t);toast('Kood kopeeritud');}catch(e){toast('Kopeeri kood käsitsi väljalt');}};
+$('#restB').onclick=()=>{try{const o=JSON.parse($('#backup').value);if(!o.levels||!o.players)throw 0;S=Object.assign(defaults(),o);save();renderSettings();render();toast('Seis taastatud');}catch(e){toast('Kood ei sobi');}};
+$('#reset').onclick=()=>modal('Lähtesta turniir?','<p>Kell, väljalangemised, rebuy\'d ja add-on\'id nullitakse. Nimed ja seaded jäävad.</p>',[{t:'Lähtesta',cls:'danger',fn:()=>{
+  S.players.forEach(p=>{p.rb=0;p.ao=0;p.out=0;p.t='';});Object.assign(S,{idx:0,running:false,endsAt:0,warned:false,started:false,tid:null,startedAt:null,savedAt:null});
+  if(S.autoStruct)regen();S.remaining=durMs(0);save();renderSettings();render();toast('Uus turniir valmis');}}]);
+
+/* ---------------- TIME call ---------------- */
+let tmr=null,tEnd=0,tLast=-1,binding=false;
+function tickSnd(hi){if(!S.sound)return;bell(hi?NT.C6:NT.A5,0,hi?.34:.22,.35);}
+function buzzer(){if(!S.sound)return;const c=audio(),m=out();if(!c||!m)return;const t=c.currentTime;
+  [0,.55].forEach(st=>{[110,116].forEach(f=>{const o=c.createOscillator(),g=c.createGain();o.type='sawtooth';o.frequency.value=f;g.gain.setValueAtTime(.0001,t+st);g.gain.exponentialRampToValueAtTime(.3,t+st+.02);g.gain.setValueAtTime(.3,t+st+.42);g.gain.exponentialRampToValueAtTime(.0001,t+st+.5);o.connect(g);g.connect(m);o.start(t+st);o.stop(t+st+.55);});});}
+function timeStart(name){
+  clearInterval(tmr);audio();const sec=Math.max(5,+S.timeSec||30);tEnd=Date.now()+sec*1000;tLast=-1;
+  const ov=$('#timeOv');ov.className='on';$('#timeName').textContent=name||'';$('#timeNum').textContent=sec;
+  if(S.sound)bell(NT.E5,0,.3,.8);
+  tmr=setInterval(()=>{const left=Math.ceil((tEnd-Date.now())/1000);
+    if(left!==tLast){tLast=left;
+      if(left<=0){$('#timeNum').textContent='AEG LÄBI';ov.className='on done';buzzer();clearInterval(tmr);tmr=setTimeout(timeStop,4000);return;}
+      $('#timeNum').textContent=left;ov.classList.toggle('hot',left<=10);if(left<=10)tickSnd(left<=3);}
+  },100);
+}
+function timeStop(){clearInterval(tmr);clearTimeout(tmr);tmr=null;$('#timeOv').className='';}
+const timeActive=()=>$('#timeOv').classList.contains('on');
+function timeToggle(){timeActive()?timeStop():timeStart('');}
+$('#timeOv').onclick=timeStop;
+if(false)$('#timeBtn').onclick=()=>pick('Kellele time?',alivePl(),p=>timeStart(p.name),'<p class="note" style="margin-top:0"><button id="timeAny" class="pri" style="padding:.5em 1em">⏱ Alusta kohe (nimeta)</button></p>');
+$('#time2').onclick=()=>timeToggle();
+$('#alarm').onclick=e=>{e.stopPropagation();timeToggle();};
+document.addEventListener('click',e=>{if(e.target.id==='timeAny'){closeM();timeStart('');}});
+let bindT=null;
+$('#bindKey').onclick=()=>{binding=true;$('#bindLbl').textContent='vajuta nuppu…';clearTimeout(bindT);
+  bindT=setTimeout(()=>{if(!binding)return;binding=false;$('#bindLbl').textContent=S.timeKeyName;
+    modal('Brauser ei saanud nupuvajutust','<p>See brauser ei anna seda nuppu lehele edasi. Tõenäoliselt saadab nupp helitugevuse klahvi – Chrome Androidis neid veebilehele ei edastata.</p><p class="note">Proovi: (1) puldi teist/väiksemat nuppu (Androidi nupp saadab tavaliselt Enteri), (2) allpool „Meedianupud“ valikut, (3) Androidi äppi Key Mapper, mis muudab puldi nupu mõneks muuks klahviks.</p>',[],'Selge');},7000);};
+document.addEventListener('keydown',e=>{
+  if(binding){e.preventDefault();e.stopImmediatePropagation();binding=false;clearTimeout(bindT);S.timeKey=e.code||e.key;S.timeKeyName=(e.key&&e.key.length===1?e.key.toUpperCase():(e.key||e.code));
+    save();$('#bindLbl').textContent=S.timeKeyName;$('#timeKeyLbl').textContent=S.timeKeyName;toast('⏱ Time nupp: '+S.timeKeyName);return;}
+  if(/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))return;
+  if((e.code||e.key)===S.timeKey||e.key===S.timeKey){e.preventDefault();e.stopImmediatePropagation();closeM();timeToggle();}
+},true);
+
+/* ---------------- media keys -> TIME ---------------- */
+let silentEl=null;
+function silentWav(){const sr=8000,n=sr*2,b=new ArrayBuffer(44+n*2),v=new DataView(b);const w=(o,t)=>[...t].forEach((c,i)=>v.setUint8(o+i,c.charCodeAt(0)));
+  w(0,'RIFF');v.setUint32(4,36+n*2,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,n*2,true);
+  for(let i=0;i<n;i++)v.setInt16(44+i*2,(i%2?1:-1),true);return URL.createObjectURL(new Blob([b],{type:'audio/wav'}));}
+async function mediaKeysOn(){
+  if(!S.mediaKeys){if(silentEl){silentEl.pause();}return;}
+  try{ if(!silentEl){silentEl=new Audio(silentWav());silentEl.loop=true;silentEl.volume=1;}
+    await silentEl.play();
+    if('mediaSession' in navigator){navigator.mediaSession.metadata=new MediaMetadata({title:'⏱ Pokkeri time',artist:S.name||'Turniir'});
+      const h=()=>{timeToggle();silentEl.play().catch(()=>{});navigator.mediaSession.playbackState='playing';};
+      ['play','pause','nexttrack','previoustrack','stop'].forEach(a=>{try{navigator.mediaSession.setActionHandler(a,h);}catch(e){}});
+      navigator.mediaSession.playbackState='playing';}
+  }catch(e){}
+}
+$('#mediaKeys').onchange=e=>{S.mediaKeys=e.target.checked;save();mediaKeysOn();toast(S.mediaKeys?'🎵 Meedianupud: proovi puldi nuppu':'Meedianupud väljas');};
+document.addEventListener('pointerdown',()=>{if(S.mediaKeys&&silentEl&&silentEl.paused)mediaKeysOn();});
+document.addEventListener('keydown',e=>{if(['MediaPlayPause','MediaTrackNext','MediaTrackPrevious'].includes(e.key)&&S.mediaKeys){e.preventDefault();timeToggle();}});
+
+/* ---------------- TV idle ---------------- */
+let idleT=null;
+function poke(){document.body.classList.remove('idle');clearTimeout(idleT);idleT=setTimeout(()=>{if(S.tv&&!$('#modal').classList.contains('on'))document.body.classList.add('idle');},4000);}
+['pointerdown','mousemove','keydown'].forEach(ev=>document.addEventListener(ev,poke,{passive:true}));
+
+/* ---------------- Google Sheets ---------------- */
+async function gsPost(obj){const r=await fetch(S.gsUrl,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(obj)});const j=await r.json();if(!j.ok)throw new Error(j.error||'viga');return j;}
+async function gsGet(action){const r=await fetch(S.gsUrl+(S.gsUrl.includes('?')?'&':'?')+'action='+action);const j=await r.json();if(!j.ok)throw new Error(j.error||'viga');return j;}
+const gsFail=e=>{console.warn(e);toast('Sheets ühendus ebaõnnestus');$('#gsNote')&&($('#gsNote').innerHTML='<span style="color:var(--bad)">Ühendus ebaõnnestus.</span> Kontrolli URL-i ja et veebirakendus on avatud „Anyone“ jaoks. Claude\'i lehe eelvaates on välised päringud keelatud – kasuta GitHubi versiooni.');};
+function points(place){const n=N(),b=+S.ptsBase||0;
+  if(S.ptsMode==='f1')return([25,18,15,12,10,8,6,4,2,1][place-1]||0)+b;
+  if(S.ptsMode==='itm'){const k=payPcts().length;return(place<=k?k-place+1:0)+b;}
+  return n-place+1+b;}
+async function saveResults(){
+  if(!S.gsUrl)return toast('Lisa seadetes Sheetsi URL');
+  if(alive()!==1)return toast('Võitja pole veel selgunud');
+  const pr=prizes(),w=alivePl()[0],d=new Date(S.startedAt||Date.now());
+  const date=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const rows=S.players.map(p=>{const place=p.out||1,prize=pr[place-1]||0;return{player:p.name,place,rb:p.rb,ao:p.ao,in:paidIn(p),prize,points:points(place)};}).sort((a,b)=>a.place-b.place);
+  const t={id:S.tid||('T'+Date.now()),date,season:S.season||'',name:S.name,players:N(),buyin:S.buyin,rebuys:totRb(),addons:totAo(),pool:pool(),winner:w.name,durMin:S.startedAt?Math.round((Date.now()-S.startedAt)/60000):''};
+  S.tid=t.id;
+  toast('Salvestan…');
+  try{await gsPost({action:'saveResult',t,rows});S.savedAt=Date.now();save();toast('✓ Tulemused salvestatud');}catch(e){gsFail(e);}
+}
+$('#gsSave').onclick=saveResults;
+$('#gsTest').onclick=async()=>{if(!S.gsUrl)return toast('Lisa URL');try{await gsGet('ping');toast('✓ Ühendus töötab');$('#gsNote').textContent='Ühendus töötab.';}catch(e){gsFail(e);}};
+$('#gsLoad').onclick=async()=>{if(!S.gsUrl)return toast('Lisa URL');
+  try{const j=await gsGet('state');if(!j.state)return toast('Sheetsis pole salvestatud seisu');const o=JSON.parse(j.state);
+    modal('Laadi seis Sheetsist?','<p>Turniir „'+esc(o.name)+'“, '+(o.players||[]).length+' mängijat. Praegune seis selles seadmes asendatakse.</p>',[{t:'Laadi',fn:()=>{const url=S.gsUrl;S=Object.assign(defaults(),o);S.gsUrl=url;save();renderSettings();render();toast('Seis laaditud');}}]);
+  }catch(e){gsFail(e);}};
+let HIST=null,hSeason=null;
+$('#histBtn').onclick=async()=>{
+  $('#hist').classList.add('on');document.body.style.overflow='hidden';
+  if(!S.gsUrl){$('#histBody').innerHTML='<p>Ajaloo nägemiseks lisa seadetes <b>Google Sheetsi</b> URL (juhend on Apps Scripti failis).</p>';return;}
+  $('#histBody').innerHTML='<p class="mut">Laen…</p>';
+  try{HIST=await gsGet('history');hSeason=hSeason||S.season;drawHist();}catch(e){$('#histBody').innerHTML='<p style="color:var(--bad)">Ei saanud Sheetsiga ühendust.</p><p class="note">Claude\'i lehe eelvaates on välised päringud keelatud – kasuta GitHubi versiooni.</p>';}
+};
+$('#closeHist').onclick=()=>{$('#hist').classList.remove('on');document.body.style.overflow='';};
+function drawHist(){
+  const seasons=[...new Set([...HIST.standings.map(x=>String(x.season)),...HIST.tournaments.map(x=>String(x.season))])].sort().reverse();
+  if(!seasons.includes(String(hSeason)))hSeason=seasons[0];
+  const st=HIST.standings.filter(x=>String(x.season)===String(hSeason)), ts=HIST.tournaments.filter(x=>String(x.season)===String(hSeason));
+  $('#histBody').innerHTML=(seasons.length?'<div class="seg" id="hSeg">'+seasons.map(x=>`<button data-se="${esc(x)}" class="${x===String(hSeason)?'on':''}">${esc(x)}</button>`).join('')+'</div>':'<p>Salvestatud turniire veel pole.</p>')+
+   (st.length?`<div class="sec"><h3>Edetabel · ${ts.length} turniiri</h3><div style="overflow-x:auto"><table class="htable"><thead><tr><th>#</th><th>Mängija</th><th>Mänge</th><th>Võite</th><th>ITM</th><th>Punktid</th><th>Kasum</th></tr></thead><tbody>`+
+     st.map((x,i)=>`<tr><td class="num">${i+1}.</td><td>${esc(x.player)}</td><td class="num">${x.games}</td><td class="num">${x.wins}</td><td class="num">${x.itm}</td><td class="num"><b>${fmt(x.points)}</b></td><td class="num" style="color:${x.net>=0?'var(--acc)':'var(--bad)'}">${(x.net>0?'+':'')+eur(x.net)}</td></tr>`).join('')+'</tbody></table></div></div>':'')+
+   (ts.length?'<div class="sec"><h3>Turniirid</h3>'+ts.map(t=>`<div class="row"><span class="n">${esc(t.date)} · ${esc(t.name)} <span class="mut">(${t.players} m)</span></span><span class="in">${eur(t.pool)}</span><span class="a">🏆 ${esc(t.winner)}</span></div>`).join('')+'</div>':'');
+  $$('#hSeg button').forEach(b=>b.onclick=()=>{hSeason=b.dataset.se;drawHist();});
+}
+
+/* ---------------- start ---------------- */
+if(!S.running&&(!S.remaining||isNaN(S.remaining)))S.remaining=durMs(S.idx);
+save();render();tick();setInterval(tick,250);wake();if(S.mediaKeys)document.addEventListener('pointerdown',mediaKeysOn,{once:true});
+})();
+</script>
+</body>
+</html>
