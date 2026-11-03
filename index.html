@@ -353,6 +353,7 @@ body:has(.ov.on) #alarm,body:has(.modal.on) #alarm{display:none}
     <div class="sec"><h3>Google Sheets – tulemused ja hooaeg</h3>
       <label class="f">Apps Scripti veebirakenduse URL<input data-s="gsUrl" type="url" placeholder="https://script.google.com/macros/s/…/exec"></label>
       <div class="grid" style="margin-top:.8rem">
+        <label class="f">PIN (sama mis skriptis)<input id="gsPin" type="password" inputmode="numeric" autocomplete="off" placeholder="küsitakse salvestamisel"></label>
         <label class="f">Hooaeg<input data-s="season" type="text"></label>
         <label class="f">Punktisüsteem<select data-s="ptsMode"><option value="lin">Mängijad − koht + 1</option><option value="f1">F1 (25-18-15-12-10-8-6-4-2-1)</option><option value="itm">Ainult auhinnakohad (kohtade arv − koht + 1)</option></select></label>
         <label class="f">Osalemise punktid<input data-s="ptsBase" type="number" min="0" step="any"></label>
@@ -405,6 +406,8 @@ body:has(.ov.on) #alarm,body:has(.modal.on) #alarm{display:none}
 
 <script>
 (()=>{
+// ⬇ Soovi korral kleebi siia oma Apps Scripti /exec URL – siis on see igas seadmes kohe olemas
+const DEFAULT_GS_URL='';
 const KEY='pokkeriTabloo.v2';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const fmt=n=>Math.round(n).toLocaleString('et-EE');
@@ -428,10 +431,11 @@ let S=defaults();
 try{const raw=localStorage.getItem(KEY); if(raw) S=Object.assign(defaults(),JSON.parse(raw));}catch(e){}
 const DUR_OPTS=[1.5,2,2.5,3,3.5,4];
 const snapDur=h=>DUR_OPTS.reduce((b,x)=>Math.abs(x-h)<Math.abs(b-h)?x:b,DUR_OPTS[0]);
-S.durH=snapDur(+S.durH||3); if(S.startSB==null)S.startSB=0; if(!S._t60){S.timeSec=60;S._t60=1;}
+S.durH=snapDur(+S.durH||3); if(!S.gsUrl&&DEFAULT_GS_URL)S.gsUrl=DEFAULT_GS_URL; if(S.startSB==null)S.startSB=0; if(!S._t60){S.timeSec=60;S._t60=1;}
 let gsTimer=null;
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}
-  if(S.gsAuto&&S.gsUrl){clearTimeout(gsTimer);gsTimer=setTimeout(()=>gsPost({action:'saveState',state:JSON.stringify(S)}).catch(()=>{}),8000);}}
+  if(S.gsAuto&&S.gsUrl){clearTimeout(gsTimer);gsTimer=setTimeout(()=>(S.gsPin?gsPost({action:'saveState',state:cleanJSON()}).catch(()=>{}):0),8000);}}
+const cleanJSON=()=>JSON.stringify(S,(k,v)=>k==='gsPin'?undefined:v);
 const paidIn=p=>S.buyin+p.rb*S.rebuyPrice+p.ao*S.addonPrice;
 
 const N=()=>S.players.length;
@@ -793,7 +797,7 @@ function renderSettings(){
   $$('#payMode button').forEach(b=>b.classList.toggle('on',b.dataset.m===S.payMode));
   if($('#payCustom')!==ae)$('#payCustom').value=(S.payMode==='custom'?S.payCustom:payPcts()).join(', ');
   $('#payCustom').disabled=S.payMode!=='custom';
-  $('#bindLbl').textContent=S.timeKeyName;$('#mediaKeys').checked=!!S.mediaKeys;  $('#soundOn').checked=S.sound;$('#autoChips').checked=S.autoChips;$('#gsAuto').checked=S.gsAuto;
+  $('#bindLbl').textContent=S.timeKeyName;$('#mediaKeys').checked=!!S.mediaKeys;  if($('#gsPin')!==document.activeElement)$('#gsPin').value=S.gsPin||'';  $('#soundOn').checked=S.sound;$('#autoChips').checked=S.autoChips;$('#gsAuto').checked=S.gsAuto;
   $$('#rbMode button').forEach(b=>b.classList.toggle('on',b.dataset.m===S.rebuyMode));
   $('#fRbL').style.display=S.rebuyMode==='levels'?'':'none';$('#fRbH').style.display=S.rebuyMode==='combo'?'':'none';$('#fRbHn').style.display=S.rebuyMode==='combo'?'':'none';
   $('#fRbHn').textContent='Rebuy suletakse, kui mänguaeg (kell, pausid kaasa arvatud) ületab '+(+S.rebuyHours||2).toLocaleString('et-EE')+' h või kui alles on pooled mängijad (allapoole ümardatud): '+N()+' mängijaga kuni '+halfLimit()+' alles.';$('#fRbP').style.display=S.rebuyMode==='players'?'':'none';
@@ -896,7 +900,7 @@ $('#payMode').onclick=e=>{const m=e.target.dataset.m;if(!m)return;if(m==='custom
 $('#payCustom').oninput=e=>{S.payCustom=e.target.value.split(/[;,\s]+/).map(x=>parseFloat(x.replace(',','.'))).filter(x=>x>0);save();renderPayNote();render();};
 $('#soundOn').onchange=e=>{S.sound=e.target.checked;save();render();};
 $('#testSnd').onclick=()=>{audio();fanfare();setTimeout(breakChime,3600);setTimeout(warnBells,6400);toast('🎺 Tase → ☕ Paus → 🔔 1 min');};
-$('#copyB').onclick=async()=>{const t=JSON.stringify(S);$('#backup').value=t;$('#backup').select();try{await navigator.clipboard.writeText(t);toast('Kood kopeeritud');}catch(e){toast('Kopeeri kood käsitsi väljalt');}};
+$('#copyB').onclick=async()=>{const t=cleanJSON();$('#backup').value=t;$('#backup').select();try{await navigator.clipboard.writeText(t);toast('Kood kopeeritud');}catch(e){toast('Kopeeri kood käsitsi väljalt');}};
 $('#restB').onclick=()=>{try{const o=JSON.parse($('#backup').value);if(!o.levels||!o.players)throw 0;S=Object.assign(defaults(),o);save();renderSettings();render();toast('Seis taastatud');}catch(e){toast('Kood ei sobi');}};
 $('#reset').onclick=()=>modal('Lähtesta turniir?','<p>Kell, väljalangemised, rebuy\'d ja add-on\'id nullitakse. Nimed ja seaded jäävad.</p>',[{t:'Lähtesta',cls:'danger',fn:()=>{
   S.players.forEach(p=>{p.rb=0;p.ao=0;p.out=0;p.t='';});Object.assign(S,{idx:0,running:false,endsAt:0,warned:false,started:false,tid:null,startedAt:null,savedAt:null});
@@ -961,8 +965,23 @@ function poke(){document.body.classList.remove('idle');clearTimeout(idleT);idleT
 ['pointerdown','mousemove','keydown'].forEach(ev=>document.addEventListener(ev,poke,{passive:true}));
 
 /* ---------------- Google Sheets ---------------- */
-async function gsPost(obj){const r=await fetch(S.gsUrl,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(obj)});const j=await r.json();if(!j.ok)throw new Error(j.error||'viga');return j;}
-async function gsGet(action){const r=await fetch(S.gsUrl+(S.gsUrl.includes('?')?'&':'?')+'action='+action);const j=await r.json();if(!j.ok)throw new Error(j.error||'viga');return j;}
+class PinErr extends Error{}
+async function gsPost(obj,pin){const r=await fetch(S.gsUrl,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...obj,pin:pin??S.gsPin??''})});const j=await r.json();
+  if(!j.ok){if(j.code==='PIN')throw new PinErr('PIN');throw new Error(j.error||'viga');}return j;}
+async function gsGet(action,pin){const r=await fetch(S.gsUrl+(S.gsUrl.includes('?')?'&':'?')+'action='+action+'&pin='+encodeURIComponent(pin??S.gsPin??''));const j=await r.json();
+  if(!j.ok){if(j.code==='PIN')throw new PinErr('PIN');throw new Error(j.error||'viga');}return j;}
+// ask PIN (or use remembered one); run fn(pin); on wrong PIN ask again
+function withPin(title,fn,wrong){
+  const run=async(pin,remember)=>{try{await fn(pin);if(remember){S.gsPin=pin;save();$('#gsPin')&&($('#gsPin').value=pin);}}
+    catch(e){if(e instanceof PinErr){if(S.gsPin===pin){S.gsPin='';save();}withPin(title,fn,true);}else gsFail(e);}};
+  if(S.gsPin&&!wrong)return run(S.gsPin,false);
+  modal('🔒 '+title,(wrong?'<p style="color:var(--bad);margin-top:0">Vale PIN, proovi uuesti.</p>':'')+
+    '<label class="f">PIN<input id="pinIn" type="password" inputmode="numeric" autocomplete="off" style="font-size:1.6rem;letter-spacing:.3em;text-align:center"></label>'+
+    '<label class="chk" style="margin-top:.7rem"><input type="checkbox" id="pinRem"> Jäta selles seadmes meelde</label>',
+    [{t:'OK',fn:()=>{}}]);
+  const ok=$$('#mBtns button');const b=ok[ok.length-1];
+  b.onclick=()=>{const pin=$('#pinIn').value.trim(),rem=$('#pinRem').checked;closeM();run(pin,rem);};
+}
 const gsFail=e=>{console.warn(e);toast('Sheets ühendus ebaõnnestus');$('#gsNote')&&($('#gsNote').innerHTML='<span style="color:var(--bad)">Ühendus ebaõnnestus.</span> Kontrolli URL-i ja et veebirakendus on avatud „Anyone“ jaoks. Claude\'i lehe eelvaates on välised päringud keelatud – kasuta GitHubi versiooni.');};
 function points(place){const n=N(),b=+S.ptsBase||0;
   if(S.ptsMode==='f1')return([25,18,15,12,10,8,6,4,2,1][place-1]||0)+b;
@@ -976,15 +995,16 @@ async function saveResults(){
   const rows=S.players.map(p=>{const place=p.out||1,prize=pr[place-1]||0;return{player:p.name,place,rb:p.rb,ao:p.ao,in:paidIn(p),prize,points:points(place)};}).sort((a,b)=>a.place-b.place);
   const t={id:S.tid||('T'+Date.now()),date,season:S.season||'',name:S.name,players:N(),buyin:S.buyin,rebuys:totRb(),addons:totAo(),pool:pool(),winner:w.name,durMin:S.startedAt?Math.round((Date.now()-S.startedAt)/60000):''};
   S.tid=t.id;
-  toast('Salvestan…');
-  try{await gsPost({action:'saveResult',t,rows});S.savedAt=Date.now();save();toast('✓ Tulemused salvestatud');}catch(e){gsFail(e);}
+  withPin('Salvesta tulemused',async pin=>{toast('Salvestan…');await gsPost({action:'saveResult',t,rows},pin);S.savedAt=Date.now();save();toast('✓ Tulemused salvestatud');});
 }
 $('#gsSave').onclick=saveResults;
-$('#gsTest').onclick=async()=>{if(!S.gsUrl)return toast('Lisa URL');try{await gsGet('ping');toast('✓ Ühendus töötab');$('#gsNote').textContent='Ühendus töötab.';}catch(e){gsFail(e);}};
+$('#gsTest').onclick=async()=>{if(!S.gsUrl)return toast('Lisa URL');try{await gsGet('ping');
+  if(S.gsPin){try{await gsGet('checkpin');$('#gsNote').textContent='Ühendus töötab, PIN on õige.';toast('✓ Ühendus ja PIN korras');}catch(e){if(e instanceof PinErr){$('#gsNote').innerHTML='<span style="color:var(--bad)">Ühendus töötab, aga PIN on vale.</span>';toast('Vale PIN');}else throw e;}}
+  else{toast('✓ Ühendus töötab');$('#gsNote').textContent='Ühendus töötab. PIN küsitakse salvestamisel.';}}catch(e){gsFail(e);}};
+$('#gsPin').addEventListener('change',e=>{S.gsPin=e.target.value.trim();save();});
 $('#gsLoad').onclick=async()=>{if(!S.gsUrl)return toast('Lisa URL');
-  try{const j=await gsGet('state');if(!j.state)return toast('Sheetsis pole salvestatud seisu');const o=JSON.parse(j.state);
-    modal('Laadi seis Sheetsist?','<p>Turniir „'+esc(o.name)+'“, '+(o.players||[]).length+' mängijat. Praegune seis selles seadmes asendatakse.</p>',[{t:'Laadi',fn:()=>{const url=S.gsUrl;S=Object.assign(defaults(),o);S.gsUrl=url;save();renderSettings();render();toast('Seis laaditud');}}]);
-  }catch(e){gsFail(e);}};
+  withPin('Laadi seis Sheetsist',async pin=>{const j=await gsGet('state',pin);if(!j.state)return toast('Sheetsis pole salvestatud seisu');const o=JSON.parse(j.state);
+    setTimeout(()=>modal('Laadi seis Sheetsist?','<p>Turniir „'+esc(o.name)+'“, '+(o.players||[]).length+' mängijat. Praegune seis selles seadmes asendatakse.</p>',[{t:'Laadi',fn:()=>{const url=S.gsUrl,pn=S.gsPin;S=Object.assign(defaults(),o);S.gsUrl=url;S.gsPin=pn;save();renderSettings();render();toast('Seis laaditud');}}]),50);});};
 let HIST=null,hSeason=null;
 $('#histBtn').onclick=async()=>{
   $('#hist').classList.add('on');document.body.style.overflow='hidden';
